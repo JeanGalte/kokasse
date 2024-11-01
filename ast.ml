@@ -10,9 +10,9 @@ type effect =
   | Div
 
 type o_type =
-  | String of string
-  | Int of int
-  | Bool of bool
+  | String
+  | Int
+  | Bool
   | Unit
   | Const of string
   | List_t of o_type list
@@ -52,6 +52,6 @@ and
     body : expr;    
   }
 
-type decl = ident -> funbody 
+type decl = ident*funbody 
 
 type program = decl list 
