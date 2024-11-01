@@ -23,22 +23,26 @@ and
 
 type param = (ident * o_type) list 
 
-type expr = STMTS of stmt list | Bexpr 
+type atom =
+  | True
+  | False
+  | Int of int
+  | String of string
+  | U of unit
+  | Id of ident
+
+type expr =
+  | STMTS of stmt list
+  | Atom of atom
+  | Unop of (unop * expr)
+  | Binop of (binop * expr * expr)
+  | If_then_else of (expr * expr * expr)
+  | Fn of funbody
+  | Return of expr 
 and
   stmt =
-  | Bexpr of bexpr
   | Val of (ident * expr)
   | Var of (ident * expr)
-and
-  bexpr =
-  | Atom of atom
-  | Not of bexpr
-  | Less of bexpr
-  | Unop of (unop * bexpr)
-  | Binop of (binop * bexpr * bexpr)
-  | If_then_else of (bexpr * expr * expr)
-  | Fn of funbody
-  | Return of expr
 and
   funbody =
   {
@@ -46,19 +50,6 @@ and
     ret_type : o_type;
     body : expr;    
   }
-and
-  atom =
-  | True
-  | False
-  | Int of int
-  | String of string
-  | U of unit
-  | Id of ident
-  | Ex of expr
-  | App_l of expr list
-  | App of (atom * funbody)
-  | Appblock of (atom* (stmt list))
-  | Elist of stmt list
 
 type decl = ident -> funbody 
 
