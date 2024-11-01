@@ -21,7 +21,7 @@ type o_type =
 and
   o_effect_type = o_type * effect
 
-type param = (ident * o_type) list 
+type param = (ident * o_type)
 
 type atom =
   | True
@@ -38,6 +38,7 @@ type expr =
   | Binop of (binop * expr * expr)
   | If_then_else of (expr * expr * expr)
   | Fn of funbody
+  | Fcall of (ident * expr list)
   | Return of expr 
 and
   stmt =
