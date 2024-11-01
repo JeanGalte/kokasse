@@ -48,7 +48,7 @@ and
   funbody =
   {
     args : param list;
-    ret_type : o_type;
+    ret_type : o_type option;
     body : expr;    
   }
 
