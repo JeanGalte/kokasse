@@ -1,13 +1,13 @@
 type ident = string
 
-type binop = Plus | Less2 | Times | Div
+type binop = Plus | Less | Times | Div
 
-type unop = Not | Less1
+type unop = Not
 
 type effect =
   | No
   | Console
-  | Div
+  | Diverge
 
 type o_type =
   | String
@@ -24,11 +24,10 @@ and
 type param = (ident * o_type)
 
 type atom =
-  | True
-  | False
+  | Bool of bool 
   | Int of int
   | String of string
-  | U of unit
+  | Un
   | Id of ident
 
 type expr =
