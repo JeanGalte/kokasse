@@ -9,8 +9,11 @@ exception Impossible
 let id_or_kwd =
   [
     ("println", PRINT);
-    ("fun", FUN)
-  ]
+    ("fun", FUN);
+    ("string", STRING_TYPE);
+    ("int", INT_TYPE);
+    ("bool", BOOL_TYPE);
+   ]
 
 let find_id (s : string) =
   match List.assoc_opt s id_or_kwd with
@@ -51,7 +54,9 @@ rule token = parse
   | '{' { LB }
   | '}' { RB }
   | '(' { LP }
-  | ')' { RP }      
+  | ')' { RP }
+  | ',' { COMMA }
+  | ':' { DOUBLE_DOT }
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
 and

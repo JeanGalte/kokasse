@@ -4,7 +4,7 @@
 
 %token EOF
 
-%token LB RB LP RP
+%token LB RB LP RP COMMA DOUBLE_DOT
 
 %token PRINT
 
@@ -12,6 +12,8 @@
 
 %token <int> INT
 %token <bool> BOOL
+
+%token STRING_TYPE BOOL_TYPE INT_TYPE
 
 %token NOT
 
@@ -38,9 +40,12 @@ prog:
 ;
 
 fun_def:
-    FUN name=ident LP RP LB e=expr RB
-    { (name, { args = []; ret_type = None; body=e}) }
+    FUN name=ident LP args_spec=separated_list(COMMA, arg_type_spec)  RP LB e=expr RB
+    { (name, { args = args_spec; ret_type = None; body=e}) }
 ;
+
+arg_type_spec:
+    i=ident DOUBLE_DOT t=otype {(i, t)}
 
 expr:
   | b = bexpr { b }
@@ -71,6 +76,11 @@ atom:
   | i = INT { Int i}
 ;
 
+otype:
+  | STRING_TYPE {STRING}
+  | INT_TYPE {INT}
+  | BOOL_TYPE {BOOL}
+;
 ident:
   | id = IDENT { id }
 ;
