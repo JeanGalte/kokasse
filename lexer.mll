@@ -8,11 +8,11 @@ exception Impossible
 
 let id_or_kwd =
   [
-    ("println", PRINT);
     ("fun", FUN);
-    ("string", STRING_TYPE);
-    ("int", INT_TYPE);
-    ("bool", BOOL_TYPE);
+    (* ("if", IF); *)
+    (* ("then", THEN); *)
+    (* ("else", ELSE); *)
+    (* ("return", RETURN); *)
    ]
 
 let find_id (s : string) =
@@ -29,6 +29,14 @@ let lex_binop b =
   | "&&" -> AND
   | "||" -> OR
   | _ -> raise Impossible
+
+let lex_unop b =
+  match b with
+  | '~' -> NINT
+  | '!' -> NOT
+  | _ -> raise Impossible
+
+
 }
 
 let space = [' ' '\r' '\n']
@@ -57,15 +65,31 @@ rule token = parse
   | ')' { RP }
   | ',' { COMMA }
   | ':' { DOUBLE_DOT }
+  | '<' { LAB }
+  | '>' { RAB }
+  | '"'      { lex_string (Buffer.create 30) lexbuf }
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
 and
   single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
+  | eof {raise (Erreur_lexicale "Commentaire non fermé")}
   | _ { single_line_comment lexbuf }
 and
   multi_line_comment = parse
   | "*/" { token lexbuf }
   | "\n" { new_line lexbuf; multi_line_comment lexbuf}
+  | eof {raise (Erreur_lexicale "Commentaire non fermé")}
   | _ { multi_line_comment lexbuf }
+and lex_string buf = parse
+  | '"'       { STRING (Buffer.contents buf) }
+  | '\\' 'n'  { Buffer.add_char buf '\n'; lex_string buf lexbuf }     
+  | '\\' 't'  { Buffer.add_char buf '\t'; lex_string buf lexbuf }
+  | '\\' '"'  { Buffer.add_char buf '\"'; lex_string buf lexbuf }      
+  | [^ '"' '\\']+
+    { Buffer.add_string buf (Lexing.lexeme lexbuf);
+      lex_string buf lexbuf
+    }
+  | _ { raise (Erreur_lexicale ("Caractère non reconnu : " ^ Lexing.lexeme lexbuf)) }
+  | eof { raise (Erreur_lexicale ("String is not terminated")) }
  

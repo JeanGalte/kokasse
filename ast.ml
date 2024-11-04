@@ -1,8 +1,8 @@
 type ident = string
 
-type binop = Plus | Less | Times | Div
+type binop = Plus | Less | Times | Div | And | Or
 
-type unop = Not
+type unop = Not | Nint
 
 type effect =
   | No
@@ -10,13 +10,8 @@ type effect =
   | Diverge
 
 type o_type =
-  | String
-  | Int
-  | Bool
-  | Unit
-  | Const of string
-  | List_t of o_type list
-  | Maybe_t of o_type
+  | Typename of ident
+  | Composed_type of (ident * o_type)
   | Calcul_t of (o_type list) * o_effect_type
 and
   o_effect_type = o_type * effect
@@ -31,7 +26,7 @@ type atom =
   | Id of ident
 
 type expr =
-  | STMTS of stmt list
+  | Stmts of stmt list
   | Atom of atom
   | Unop of (unop * expr)
   | Binop of (binop * expr * expr)

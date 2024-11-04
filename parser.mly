@@ -4,25 +4,23 @@
 
 %token EOF
 
-%token LB RB LP RP COMMA DOUBLE_DOT
+%token LB RB LP RP LAB RAB COMMA DOUBLE_DOT 
 
-%token PRINT
+%token PLUS MOINS FOIS DIV
+%token AND OR 
 
 %token FUN
 
 %token <int> INT
 %token <bool> BOOL
+%token <string> STRING
 
-%token STRING_TYPE BOOL_TYPE INT_TYPE
-
-%token NOT
-
-%token PLUS MOINS FOIS DIV
-%token AND OR 
+%token NOT NINT
 
 %left PLUS MOINS OR AND
 %left FOIS DIV
-%nonassoc NOT
+
+%nonassoc NOT NINT 
 
 %token <string> IDENT
 
@@ -54,12 +52,14 @@ expr:
 bexpr:
   | a = atom {Atom a}
   | u=unop be = bexpr { Unop (u, be) }
-  | LP be = bexpr RP { be } 
+  | LP be = bexpr RP { be }
   | be1 = bexpr b = binop be2 = bexpr { Binop (b, be1, be2) }
 ;
 
+
 %inline unop:
   | NOT { Not }
+  | NINT { Nint }
 ;
 
 %inline binop:
@@ -74,13 +74,14 @@ bexpr:
 atom:
   | b = BOOL { Bool b }
   | i = INT { Int i}
+  | s = STRING {String s}
 ;
 
 otype:
-  | STRING_TYPE {STRING}
-  | INT_TYPE {INT}
-  | BOOL_TYPE {BOOL}
+  | id=ident LAB t=otype RAB {Composed_type (id, t)}
+  | id = ident {Typename id}
 ;
+
 ident:
   | id = IDENT { id }
 ;
