@@ -9,10 +9,9 @@ exception Impossible
 let id_or_kwd =
   [
     ("fun", FUN);
-    (* ("if", IF); *)
-    (* ("then", THEN); *)
-    (* ("else", ELSE); *)
-    (* ("return", RETURN); *)
+    ("if", IF);
+    ("then", THEN);
+    ("else", ELSE);
    ]
 
 let find_id (s : string) =
@@ -22,18 +21,21 @@ let find_id (s : string) =
 
 let lex_binop b =
   match b with
+  | "%" -> MOD
   | "+" -> PLUS
   | "-" -> MOINS
   | "*" -> FOIS
   | "/" -> DIV
   | "&&" -> AND
   | "||" -> OR
+  | "<=" -> LT
+  | ">=" -> GT
   | _ -> raise Impossible
 
 let lex_unop b =
   match b with
-  | '~' -> NINT
   | '!' -> NOT
+  | '~' -> NINT
   | _ -> raise Impossible
 
 
@@ -47,8 +49,7 @@ let lower = ['a'-'z'] |"_"
 let upper = ['A'-'Z']
 let other = digit | lower | upper
 let ident = lower (other | (other '-' (lower | upper)))*'-'?
-let binop = "+"|"-"|"*"|"/"|"&&"|"||"
-     
+let binop = "+"|"-"|"*"|"/"|"&&"|"||"     
 
 rule token = parse
   | eof { EOF }
@@ -73,7 +74,7 @@ rule token = parse
 and
   single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
-  | eof {raise (Erreur_lexicale "Commentaire non fermé")}
+  | eof { EOF }
   | _ { single_line_comment lexbuf }
 and
   multi_line_comment = parse
@@ -91,5 +92,5 @@ and lex_string buf = parse
       lex_string buf lexbuf
     }
   | _ { raise (Erreur_lexicale ("Caractère non reconnu : " ^ Lexing.lexeme lexbuf)) }
-  | eof { raise (Erreur_lexicale ("String is not terminated")) }
+  | eof { raise (Erreur_lexicale ("La chaîne de caractère "^(Buffer.contents buf)^"n'est pas terminée")) }
  
