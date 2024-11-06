@@ -5,7 +5,7 @@
 
     exception Impossible
     
-    let imbricated_elif (lb : (expr * expr) list) (a : expr) (b : expr) (c : expr) : expr =
+    let imbricated_elif (lb : (expr * expr) list) (a : expr) (b : expr) (c : expr) : expr =      
       let rec aux ( l : (expr * expr) list) (acc : expr) = 
 	(match l with
 	 | [(cond, e)] ->
@@ -27,14 +27,14 @@
 
 %token EOF
 
-%token LB RB LP RP LAB RAB COMMA DOUBLE_DOT 
+%token LB RB LP RP CRG CRD LAB RAB COMMA DOUBLE_DOT DOUBLE_DOT_EGAL SEMIC
 
-%token PLUS MOINS FOIS DIV MOD GT 
+%token PLUS MOINS FOIS DIV MOD GT EGAL
 %token AND OR LT
 
 %token NOT NINT
 
-%token FUN IF THEN ELSE RETURN ELIF
+%token FUN FN IF THEN ELSE RETURN ELIF VAL VAR
 
 %token <int> INT
 %token <bool> BOOL
@@ -43,6 +43,8 @@
 %token <string> IDENT
 
 %type <Ast.program> prog
+
+%nonassoc SEMIC
 
 %start prog
 
@@ -56,12 +58,22 @@ prog:
 ;
 
 fun_def:
-    FUN name=ident LP args_spec=separated_list(COMMA, arg_type_spec)  RP LB e=expr RB
-    { (name, { args = args_spec; ret_type = None; body=e}) }
+    FUN name=ident f=fun_body
+    { (name,f) }
+;
+
+fun_body:
+  | LP args_spec=separated_list(COMMA, arg_type_spec) r=ret_type? RP LB e=expr RB
+    {{args=args_spec; ret_type=r; body=e}}
+;
+
+ret_type:
+  | DOUBLE_DOT r=otype { r } 
 ;
 
 arg_type_spec:
   | i=ident DOUBLE_DOT t=otype {(i, t)}
+;
 
 expr:
   | b = bexpr { b }
@@ -70,7 +82,28 @@ expr:
 bexpr:
   | e = if_expr { e }
   | e = or_expr { e }
-  | LP be = bexpr RP { be }
+  | LP be=bexpr RP { be }
+  | FN f=fun_body {Fn f}
+  | RETURN e=expr {Return e}
+  | i=ident DOUBLE_DOT_EGAL e=expr { Stmts [Var (i,e)] }
+  | b=block {b}
+;
+
+list_expr:
+  | CRG l = separated_list(COMMA, expr) CRD {Elist l}
+
+block:
+  | LB l=block_part* RB {Stmts l}
+;
+
+block_part:
+  | SEMIC* s=stmt SEMIC+ {s}
+;
+
+stmt:
+  | e = bexpr {E e}
+  | VAL i=ident EGAL e=expr {Val (i, e)}
+  | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)}
 ;
 
 if_expr:
@@ -80,7 +113,7 @@ if_expr:
 ;
 
 elif_expr:
-  | ELIF e1=bexpr THEN e2=expr {(e1, e2)} 
+  | LP ELIF e1=bexpr THEN e2=expr RP {(e1, e2)} 
 ;
 
 or_expr:
@@ -126,8 +159,9 @@ arith_expr3:
 
 atom_expr:
   | b = BOOL { Atom (Bool b) }
-  | i = INT { Atom (Int i)}
+  | i = INT { print_newline () ;  Atom (Int i)}
   | s = STRING {Atom (String s)}
+  | l=list_expr {Atom l}
 ;
 
 otype:

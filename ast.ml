@@ -1,6 +1,6 @@
 type ident = string
 
-type binop = Plus | Less | Times | Div | And | Or
+type binop = Plus | Less | Times | Div | Mod | And | Or | Lt | Gt | Slt | Sgt 
 
 type unop = Not | Nint
 
@@ -18,12 +18,6 @@ and
 
 type param = (ident * o_type)
 
-type atom =
-  | Bool of bool 
-  | Int of int
-  | String of string
-  | Un
-  | Id of ident
 
 type expr =
   | Stmts of stmt list
@@ -34,8 +28,16 @@ type expr =
   | Fn of funbody
   | Fcall of (ident * expr list)
   | Return of expr 
+and atom =
+  | Elist of expr list
+  | Bool of bool 
+  | Int of int
+  | String of string
+  | Unit
+  | Id of ident
 and
   stmt =
+  | E of expr
   | Val of (ident * expr)
   | Var of (ident * expr)
 and
@@ -45,6 +47,7 @@ and
     ret_type : o_type option;
     body : expr;    
   }
+
 
 type decl = ident*funbody 
 

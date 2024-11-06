@@ -9,9 +9,13 @@ exception Impossible
 let id_or_kwd =
   [
     ("fun", FUN);
+    ("fn", FN);
     ("if", IF);
     ("then", THEN);
     ("else", ELSE);
+    ("elif", ELIF);
+    ("val", VAL);
+    ("var", VAR)
    ]
 
 let find_id (s : string) =
@@ -30,6 +34,9 @@ let lex_binop b =
   | "||" -> OR
   | "<=" -> LT
   | ">=" -> GT
+  | ":=" -> DOUBLE_DOT_EGAL
+  | "=" -> EGAL
+  | ":" -> SEMIC
   | _ -> raise Impossible
 
 let lex_unop b =
@@ -37,7 +44,6 @@ let lex_unop b =
   | '!' -> NOT
   | '~' -> NINT
   | _ -> raise Impossible
-
 
 }
 
@@ -68,7 +74,9 @@ rule token = parse
   | ':' { DOUBLE_DOT }
   | '<' { LAB }
   | '>' { RAB }
-  | '"'      { lex_string (Buffer.create 30) lexbuf }
+  | '[' { CRG }
+  | ']' { CRD }
+  | '"' { lex_string (Buffer.create 30) lexbuf }
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
 and
