@@ -36,7 +36,8 @@ let lex_binop b =
   | ">=" -> GT
   | ":=" -> DOUBLE_DOT_EGAL
   | "=" -> EGAL
-  | ":" -> SEMIC
+  (* | ":" -> SEMIC *)
+  | "->" -> RIGHTARR
   | _ -> raise Impossible
 
 let lex_unop b =
