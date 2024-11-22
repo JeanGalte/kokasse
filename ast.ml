@@ -5,19 +5,17 @@ type binop = Plus | Less | Times | Div | Mod | And | Or | Lt | Gt | Slt | Sgt
 type unop = Not | Nint
 
 type effect =
-  | No
   | Console
   | Diverge
 
 type o_type =
   | Typename of ident
   | Composed_type of (ident * o_type)
-  | Calcul_t of (o_type list) * o_effect_type
+  | Calcul_t of (o_type list) * result_type
 and
-  o_effect_type = o_type * effect
+  result_type = o_type * (effect list option)
 
 type param = (ident * o_type)
-
 
 type expr =
   | Stmts of stmt list
@@ -44,11 +42,11 @@ and
   funbody =
   {
     args : param list;
-    ret_type : o_type option;
+    ret_type : result_type option;
     body : expr;    
   }
 
-
+ 
 type decl = ident*funbody 
 
 type program = decl list 

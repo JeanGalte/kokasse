@@ -3,6 +3,8 @@
 
     exception Empty_elif_list
 
+    exception Effet_non_reconnu of string
+
     exception Impossible
     
     let imbricated_elif (lb : (expr * expr) list) (a : expr) (b : expr) (c : expr) : expr =      
@@ -23,11 +25,17 @@
 	 | _ -> raise Empty_elif_list
 	)
       in aux lb (If_then_else (a,b,c))
+
+    let parse_effect (e : string) : effect =
+      if e = "div" then Diverge else
+	if e = "console" then Console else
+	  raise (Effet_non_reconnu e)
+	  
 %}
 
 %token EOF
 
-%token LB RB LP RP CRG CRD LAB RAB COMMA DOUBLE_DOT DOUBLE_DOT_EGAL SEMIC
+%token LB RB LP RP CRG CRD LAB RAB COMMA DOUBLE_DOT DOUBLE_DOT_EGAL SEMIC RIGHTARR 
 
 %token PLUS MOINS FOIS DIV MOD GT EGAL
 %token AND OR LT
@@ -68,7 +76,15 @@ fun_body:
 ;
 
 ret_type:
-  | DOUBLE_DOT r=otype { r } 
+  | DOUBLE_DOT  r=result { r }
+;
+
+result:
+  | ef_list=effects_spec? r=otype {(r, ef_list)}
+;
+
+effects_spec:
+  | LAB s=separated_list(COMMA, ident) RAB {List.map parse_effect s}
 ;
 
 arg_type_spec:
@@ -85,26 +101,16 @@ bexpr:
   | LP be=bexpr RP { be }
   | FN f=fun_body {Fn f}
   | RETURN e=expr {Return e}
-  | i=ident DOUBLE_DOT_EGAL e=expr { Stmts [Var (i,e)] }
-  | b=block {b}
 ;
 
 list_expr:
   | CRG l = separated_list(COMMA, expr) CRD {Elist l}
-
-block:
-  | LB l=block_part* RB {Stmts l}
 ;
 
-block_part:
-  | SEMIC* s=stmt SEMIC+ {s}
-;
-
-stmt:
-  | e = bexpr {E e}
-  | VAL i=ident EGAL e=expr {Val (i, e)}
-  | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)}
-;
+/* stmt: */
+/*   | VAL i=ident EGAL e=expr {Val (i, e)} */
+/*   | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)} */
+/* ; */
 
 if_expr:
   | IF e=bexpr THEN e1=expr ELSE e2=expr {If_then_else (e, e1, e2)}
@@ -154,20 +160,31 @@ arith_expr2:
 
 arith_expr3:
   | NINT e=arith_expr3 { Unop (Nint, e) }
-  | e = atom_expr {e}
+  | a = atom { Atom a }
 ;
 
-atom_expr:
-  | b = BOOL { Atom (Bool b) }
-  | i = INT { print_newline () ;  Atom (Int i)}
-  | s = STRING {Atom (String s)}
-  | l=list_expr {Atom l}
+atom:
+  | b = BOOL { Bool b }
+  | i = INT {  Int i }
+  | s = STRING { String s }
+  | l=list_expr { l }
+  | LP RP  { Unit }
 ;
 
 otype:
-  | id=ident LAB t=otype RAB {Composed_type (id, t)}
-  | id = ident {Typename id}
+  | a = atype { a }
+  | a = atype RIGHTARR r=result { Calcul_t ([a], r) }
+  | LP t1=otype COMMA t2=otype COMMA tl=separated_list(COMMA, otype) RP RIGHTARR r=result { Calcul_t (t1 :: t2 :: tl,r) }
+;
+
+atype:
   | LP RP { Typename "unit" }
+  | LP t=otype RP { t }
+  | id=ident t=composed_type_arg? {match t with | None -> Typename id | Some x -> Composed_type (id, x)}
+;
+
+composed_type_arg:
+  | LAB t=otype RAB {t}
 ;
 
 ident:
