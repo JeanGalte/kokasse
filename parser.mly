@@ -5,6 +5,8 @@
 
     exception Effet_non_reconnu of string
 
+    exception Bloc_ne_se_terminant_pas_par_une_expression
+    
     exception Impossible
     
     let imbricated_elif (lb : (expr * expr) list) (a : expr) (b : expr) (c : expr) : expr =      
@@ -30,6 +32,15 @@
       if e = "div" then Diverge else
 	if e = "console" then Console else
 	  raise (Effet_non_reconnu e)
+
+    let rec is_last_expr (sl : stmt list) : bool =
+      match sl with
+      | [x] -> (match x with |  E _ -> true | _ -> false)
+      | _ :: tl -> is_last_expr tl
+      | _ -> raise Impossible
+
+    let check_block (b : stmt list) : unit =
+      if (is_last_expr b) then () else raise Bloc_ne_se_terminant_pas_par_une_expression     
 	  
 %}
 
@@ -51,8 +62,6 @@
 %token <string> IDENT
 
 %type <Ast.program> prog
-
-%nonassoc SEMIC
 
 %start prog
 
@@ -93,6 +102,25 @@ arg_type_spec:
 
 expr:
   | b = bexpr { b }
+  | b = block { b }
+;
+
+block:
+  | LB SEMIC* sl=stmt_wrap*  RB
+    {
+      check_block sl; 
+      Stmts sl     
+    }
+;
+
+stmt_wrap:
+  | s=stmt SEMIC+ { s }
+;
+
+stmt:
+  | e = expr {E e}
+  | VAL i=ident EGAL e=expr {Val (i, e)}
+  | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)}
 ;
 
 bexpr:
@@ -107,11 +135,6 @@ list_expr:
   | CRG l = separated_list(COMMA, expr) CRD {Elist l}
 ;
 
-/* stmt: */
-/*   | VAL i=ident EGAL e=expr {Val (i, e)} */
-/*   | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)} */
-/* ; */
-
 if_expr:
   | IF e=bexpr THEN e1=expr ELSE e2=expr {If_then_else (e, e1, e2)}
   | IF e1=bexpr RETURN e2=expr {If_then_else (e1, Return e2, Stmts [])}
@@ -119,7 +142,7 @@ if_expr:
 ;
 
 elif_expr:
-  | LP ELIF e1=bexpr THEN e2=expr RP {(e1, e2)} 
+  | LP ELIF e1=bexpr THEN e2=expr RP { (e1, e2) } 
 ;
 
 or_expr:
@@ -133,7 +156,7 @@ and_expr:
 ;
 
 bool_expr1:
-  | NOT e=bool_expr1 {Unop (Not, e)}
+  | NOT e=bool_expr1 { Unop (Not, e) }
   | e=bool_expr2 { e }
 ;
 
@@ -174,7 +197,7 @@ atom:
 otype:
   | a = atype { a }
   | a = atype RIGHTARR r=result { Calcul_t ([a], r) }
-  | LP t1=otype COMMA t2=otype COMMA tl=separated_list(COMMA, otype) RP RIGHTARR r=result { Calcul_t (t1 :: t2 :: tl,r) }
+  | LP t1=otype COMMA t2=otype COMMA tl=separated_list(COMMA, otype) RP RIGHTARR r=result { Calcul_t (t1 :: t2 :: tl, r) }
 ;
 
 atype:
