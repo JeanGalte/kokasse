@@ -126,7 +126,6 @@ stmt:
 bexpr:
   | e = if_expr { e }
   | e = or_expr { e }
-  | LP be=bexpr RP { be }
   | FN f=fun_body {Fn f}
   | RETURN e=expr {Return e}
 ;
@@ -190,8 +189,10 @@ atom:
   | b = BOOL { Bool b }
   | i = INT {  Int i }
   | s = STRING { String s }
+  | i = ident {Id i}
   | l=list_expr { l }
   | LP RP  { Unit }
+  | LP e=expr RP {Ex e}
 ;
 
 otype:
