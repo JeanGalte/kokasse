@@ -25,7 +25,7 @@
 
 %token EOF
 
-%token LB RB LP RP CRG CRD LAB RAB COMMA DOUBLE_DOT DOUBLE_DOT_EGAL SEMIC RIGHTARR 
+%token LB RB LP RP CRG CRD LAB RAB COMMA DOUBLE_DOT DOUBLE_DOT_EGAL SEMIC RIGHTARR DOT
 
 %token PLUS MOINS FOIS DIV MOD GT EGAL
 %token AND OR LT
@@ -109,10 +109,6 @@ bexpr:
   | RETURN e=expr {Return e}
 ;
 
-list_expr:
-  | CRG l = separated_list(COMMA, expr) CRD {Elist l}
-;
-
 if_expr:
   | IF e=bexpr THEN e1=expr ELSE e2=expr {If_then_else (e, e1, e2)}
   | IF e1=bexpr RETURN e2=expr {If_then_else (e1, Return e2, Stmts [])}
@@ -164,11 +160,14 @@ atom:
   | i = INT {  Int i }
   | s = STRING { String s }
   | i = ident {Id i}
-  | l=list_expr { l }
   | LP RP  { Unit }
   | LP e=expr RP {Ex e}
   | a=atom LP l=separated_list(COMMA,expr) RP {Fcall (a, l) }
-  /* | CRG l=separated_list(COMMA, expr) CRD {Elist l} */
+  | CRG l=separated_list(COMMA, expr) CRD {Elist l}
+  | a=atom DOT LP id=ident RP { Fcall (Id id, [a]) }
+   /* sucre syntaxique qui lève des conflits  */
+  /* | e=expr LP l=separated_list(COMMA, expr) RP FN f=fun_body {Fcall (e, l @ [Fn f])} */
+  /* | e=expr b=block { Fcall (e,  [Fn { args = []; ret_type = None; body=b}])} */
 ;
 
 otype:

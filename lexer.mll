@@ -77,6 +77,7 @@ rule token = parse
   | '>' { [RAB] }
   | '[' { [CRG] }
   | ']' { [CRD] }
+  | '.' { [DOT] }
   | '"' { [lex_string (Buffer.create 30) lexbuf] }
   | ident as id { [find_id id] }
     | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }

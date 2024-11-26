@@ -2,6 +2,20 @@ open Lexer
 open Lexing
 open Format
 
+exception Impsosible
+
+type token2 = Parser.token list
+
+let token2f (tokenf : lexbuf -> token2) : lexbuf -> Parser.token =
+  let buf = ref None in
+  fun l ->
+     match !buf with
+     | Some v ->
+        buf := Some (List.tl v); List.hd v
+     | None ->
+        match tokenf l with
+        | h :: tl -> buf := Some tl; h
+        | _ -> raise Impossible
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -9,13 +23,13 @@ let print_position outx lexbuf =
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
-  try Some (Parser.prog Lexer.token lexbuf) with
+  try Some (Parser.prog (token2f Lexer.token) lexbuf) with
   | Erreur_lexicale msg ->
     fprintf err_formatter "%a: %s\n" print_position lexbuf msg;
     None
   | Parser.Error ->
     fprintf err_formatter "%a: Erreur syntaxique \n" print_position lexbuf;
-    exit (-1)
+    exit 1
 
 let () =
   if Array.length Sys.argv <> 2 then
