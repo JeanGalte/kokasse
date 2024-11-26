@@ -19,14 +19,13 @@ type param = (ident * o_type)
 
 type expr =
   | Stmts of stmt list
-  | Atom of atom
   | Unop of (unop * expr)
   | Binop of (binop * expr * expr)
   | If_then_else of (expr * expr * expr)
   | Fn of funbody
-  | Fcall of (ident * expr list)
+  | Fcall of (expr * expr list)
   | Return of expr 
-and atom =
+  | Ex of expr
   | Elist of expr list
   | Bool of bool 
   | Int of int

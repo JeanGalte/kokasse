@@ -1,33 +1,12 @@
 %{
     open Ast
 
-    exception Empty_elif_list
-
     exception Effet_non_reconnu of string
 
     exception Bloc_ne_se_terminant_pas_par_une_expression
     
     exception Impossible
     
-    let imbricated_elif (lb : (expr * expr) list) (a : expr) (b : expr) (c : expr) : expr =      
-      let rec aux ( l : (expr * expr) list) (acc : expr) = 
-	(match l with
-	 | [(cond, e)] ->
-	    (
-	      match acc with
-	      | If_then_else (e1, e2, e3) -> If_then_else (e1, e2, (If_then_else (cond, e ,e3)))
-	      | _ -> raise Impossible 
-	    )
-	 | (cond, e) :: tl ->
-	    (
-	      match acc with
-	      | If_then_else (e1, e2, e3) -> aux tl (If_then_else (e1, e2, (If_then_else (cond, e ,e3))))
-	      | _ -> raise Impossible
-	    )
-	 | _ -> raise Empty_elif_list
-	)
-      in aux lb (If_then_else (a,b,c))
-
     let parse_effect (e : string) : effect =
       if e = "div" then Diverge else
 	if e = "console" then Console else
@@ -53,7 +32,7 @@
 
 %token NOT NINT
 
-%token FUN FN IF THEN ELSE RETURN ELIF VAL VAR
+%token FUN FN IF THEN ELSE RETURN VAL VAR
 
 %token <int> INT
 %token <bool> BOOL
@@ -137,11 +116,6 @@ list_expr:
 if_expr:
   | IF e=bexpr THEN e1=expr ELSE e2=expr {If_then_else (e, e1, e2)}
   | IF e1=bexpr RETURN e2=expr {If_then_else (e1, Return e2, Stmts [])}
-  | IF e=bexpr THEN e1=expr l=nonempty_list(elif_expr) ELSE e2=expr {imbricated_elif l e e1 e2}
-;
-
-elif_expr:
-  | LP ELIF e1=bexpr THEN e2=expr RP { (e1, e2) } 
 ;
 
 or_expr:
@@ -182,7 +156,7 @@ arith_expr2:
 
 arith_expr3:
   | NINT e=arith_expr3 { Unop (Nint, e) }
-  | a = atom { Atom a }
+  | a = atom { a }
 ;
 
 atom:
@@ -193,6 +167,8 @@ atom:
   | l=list_expr { l }
   | LP RP  { Unit }
   | LP e=expr RP {Ex e}
+  | a=atom LP l=separated_list(COMMA,expr) RP {Fcall (a, l) }
+  /* | CRG l=separated_list(COMMA, expr) CRD {Elist l} */
 ;
 
 otype:
