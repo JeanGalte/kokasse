@@ -8,44 +8,59 @@ exception Impossible
 
 let id_or_kwd =
   [
-    ("fun", FUN);
-    ("fn", FN);
-    ("if", IF);
-    ("then", THEN);
-    ("else", ELSE);
-    ("val", VAL);
-    ("var", VAR)
+    ("fun", [FUN]);
+    ("fn", [FN]);
+    ("if", [IF]);
+    ("elif", [ELSE; IF]);
+    ("then", [THEN]);
+    ("else", [ELSE]);
+    ("val", [VAL]);
+    ("var", [VAR])
    ]
 
 let find_id (s : string) =
   match List.assoc_opt s id_or_kwd with
   | Some kw ->  kw
-  | None -> IDENT s
+  | None -> [IDENT s]
 
 let lex_binop b =
-  flush stdout; 
   match b with
-  | "%" -> MOD
-  | "+" -> PLUS
-  | "-" -> MOINS
-  | "*" -> FOIS
-  | "/" -> DIV
-  | "&&" -> AND
-  | "||" -> OR
-  | "<=" -> LT
-  | ">=" -> GT
-  | ":=" -> DOUBLE_DOT_EGAL
-  | "=" -> EGAL
-  | ";" -> SEMIC
-  | "->" -> RIGHTARR
+  | "%" -> [MOD]
+  | "+" -> [PLUS]
+  | "-" -> [MOINS]
+  | "*" -> [FOIS]
+  | "/" -> [DIV]
+  | "&&" -> [AND]
+  | "||" -> [OR]
+  | "<=" -> [LT]
+  | ">=" -> [GT]
+  | ":=" -> [DOUBLE_DOT_EGAL]
+  | "=" -> [EGAL]
+  | ";" -> [SEMIC]
+  | "->" -> [RIGHTARR]
   | _ -> raise Impossible
 
 let lex_unop b =
-  flush stdout; 
    match b with
-  | '!' -> NOT
-  | '~' -> NINT
+  | '!' -> [NOT]
+  | '~' -> [NINT]
   | _ -> raise Impossible
+
+let lex_other_symb s =
+  match s with 	   
+  | '{' ->  [LB]
+  | '}' ->  [RB]
+  | '(' -> [LP]
+  | ')' -> [RP]
+  | ',' -> [COMMA]
+  | ':' -> [DOUBLE_DOT]
+  | '<' -> [LAB]
+  | '>' -> [RAB]
+  | '[' -> [CRG]
+  | ']' -> [CRD]
+  | '.' -> [DOT]
+  | _ -> raise Impossible
+
 
 let pile_indent = ref [0]
 
@@ -57,46 +72,35 @@ let digit = ['0'-'9']
 let integer = '0' | '-'? ['1'-'9'] digit*
 
 let lower = ['a'-'z'] | '_'
-
 let upper = ['A'-'Z']
-
 let letter = ['a'-'z'] | ['A' - 'Z']
-
 let other = digit | lower | upper
-
 let prect = letter | digit
-
 let k = (other | prect '-' letter)*(prect '-' | '\''*)
-
 let ident = (lower '-'? | (lower '-' letter))k 
 
+
+let unop = "~"|"!"
 let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
+let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
+
 let end_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"("|"{"|","
 let beg_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"then"|"else"|"elif"|")"|"}"|","|"->"|"{"|"="|"."|":="
 
 rule token = parse
   | eof { [EOF] }
   | space { token lexbuf }
-  | "\n" { new_line lexbuf; token lexbuf }
-  | "//" { single_line_comment lexbuf }
+  | "\n" { new_line lexbuf ; token lexbuf}
+  | "//" { single_line_comment lexbuf}
   | "/*" { multi_line_comment lexbuf }
   | integer as i { [INT (int_of_string i)] }
   | bool as b {let k = if b = "true" then true else false in [BOOL k] } 
-  | binop as b { [lex_binop b] }   
+  | unop as u { lex_unop u}
+  | binop as b { lex_binop b }
+  | other_symb as s { lex_other_symb s } 
   | "elif" { [ELSE; IF] }
-  | '{' { [LB] }
-  | '}' { [RB] }
-  | '(' { [LP] }
-  | ')' { [RP] }
-  | ',' { [COMMA] }
-  | ':' { [DOUBLE_DOT] }
-  | '<' { [LAB] }
-  | '>' { [RAB] }
-  | '[' { [CRG] }
-  | ']' { [CRD] }
-  | '.' { [DOT] }
   | '"' { [lex_string (Buffer.create 30) lexbuf] }
-  | ident as id { print_string (id^"\n"); [find_id id] }
+  | ident as id { print_string (id^"\n"); find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
   and
     single_line_comment = parse
