@@ -23,6 +23,7 @@ let find_id (s : string) =
   | None -> IDENT s
 
 let lex_binop b =
+  flush stdout; 
   match b with
   | "%" -> MOD
   | "+" -> PLUS
@@ -35,16 +36,16 @@ let lex_binop b =
   | ">=" -> GT
   | ":=" -> DOUBLE_DOT_EGAL
   | "=" -> EGAL
-  | ":" -> SEMIC
+  | ";" -> SEMIC
   | "->" -> RIGHTARR
   | _ -> raise Impossible
 
 let lex_unop b =
-  match b with
+  flush stdout; 
+   match b with
   | '!' -> NOT
   | '~' -> NINT
   | _ -> raise Impossible
-
 }
 
 let space = [' ' '\r' '\n']
@@ -55,7 +56,7 @@ let lower = ['a'-'z'] |"_"
 let upper = ['A'-'Z']
 let other = digit | lower | upper
 let ident = lower (other | (other '-' (lower | upper)))*'-'?
-let binop = "+"|"-"|"*"|"/"|"&&"|"||"
+let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
 
 rule token = parse
   | eof { [EOF] }
@@ -68,7 +69,7 @@ rule token = parse
   | binop as b { [lex_binop b] }   
   | "elif" { [ELSE; IF] }
   | '{' { [LB] }
-  | '}' { [RB] }
+  | '}' { print_string "RB\n"; [RB] }
   | '(' { [LP] }
   | ')' { [RP] }
   | ',' { [COMMA] }
