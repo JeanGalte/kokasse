@@ -46,17 +46,33 @@ let lex_unop b =
   | '!' -> NOT
   | '~' -> NINT
   | _ -> raise Impossible
+
+let pile_indent = ref [0]
+
 }
 
-let space = [' ' '\r' '\n']
+let space = [' ' '\r']
 let bool = "true"|"false"
 let digit = ['0'-'9']
 let integer = '0' | '-'? ['1'-'9'] digit*
-let lower = ['a'-'z'] |"_"
+
+let lower = ['a'-'z'] | '_'
+
 let upper = ['A'-'Z']
+
+let letter = ['a'-'z'] | ['A' - 'Z']
+
 let other = digit | lower | upper
-let ident = lower (other | (other '-' (lower | upper)))*'-'?
+
+let prect = letter | digit
+
+let k = (other | prect '-' letter)*(prect '-' | '\''*)
+
+let ident = (lower '-'? | (lower '-' letter))k 
+
 let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
+let end_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"("|"{"|","
+let beg_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"then"|"else"|"elif"|")"|"}"|","|"->"|"{"|"="|"."|":="
 
 rule token = parse
   | eof { [EOF] }
@@ -69,7 +85,7 @@ rule token = parse
   | binop as b { [lex_binop b] }   
   | "elif" { [ELSE; IF] }
   | '{' { [LB] }
-  | '}' { print_string "RB\n"; [RB] }
+  | '}' { [RB] }
   | '(' { [LP] }
   | ')' { [RP] }
   | ',' { [COMMA] }
@@ -80,12 +96,12 @@ rule token = parse
   | ']' { [CRD] }
   | '.' { [DOT] }
   | '"' { [lex_string (Buffer.create 30) lexbuf] }
-  | ident as id { [find_id id] }
-    | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
-and
-  single_line_comment = parse
+  | ident as id { print_string (id^"\n"); [find_id id] }
+  | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
+  and
+    single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
-  | eof { [EOF] }
+  | eof { print_string "lal"; [EOF] }
   | _ { single_line_comment lexbuf }
 and
   multi_line_comment = parse
@@ -106,4 +122,4 @@ and lex_string buf = parse
   | eof { raise
             (Erreur_lexicale ("La chaîne de caractère "^(Buffer.contents buf)^"n'est pas terminée"))
         }
- 
+
