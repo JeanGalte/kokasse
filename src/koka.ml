@@ -96,7 +96,8 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
      let nextt = tokenf l in
      let p = lexeme_start_p l in
      let c = p.pos_cnum - p.pos_bol in
-     let m = ref (List.hd !pile_indent) in     
+     let m = ref (List.hd !pile_indent) in
+     let em = (
      if c > !m then
        let emit_lb =
          if (ucond !last_tok nextt) then
@@ -105,11 +106,11 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
            false in
        if (!last_tok = LB) then pile_indent := c :: !pile_indent; 
        if emit_lb then
-   	 Parser.LB :: nextt
+         Parser.LB :: nextt
        else
 	 nextt 
-       else 
-	 let rb_count = ref 0 in 
+       else
+        let rb_count = ref 0 in 
 	 while c < !m do
 	   pile_indent := List.tl !pile_indent;
 	   m := List.hd !pile_indent;
@@ -124,8 +125,10 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
                (fun i -> if i mod 2 = 0 then Parser.SEMIC else Parser.RB)
            in
            if !rb_count >= 1 then last_tok := RB;
-	   let p_d = if (ucond !last_tok nextt) then Parser.SEMIC :: nextt else nextt in
+          let p_d = if (ucond !last_tok nextt) then Parser.SEMIC :: nextt else nextt in
 	   rbs @ p_d
+       ) in
+     last_tok := (last_elem nextt); em
   | _ as ltok -> last_tok := (last_elem ltok); ltok 
   
 
@@ -155,7 +158,7 @@ let print_position outx lexbuf =
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
-  try (Parser.prog (token2f (add_indent_data Lexer.token)) lexbuf) with
+  try (Parser.prog ( print_token_f (token2f (add_indent_data Lexer.token))) lexbuf) with
   | Erreur_lexicale msg  ->
     fprintf err_formatter "%a: Erreur lexicale %s\n" print_position lexbuf msg;
     exit 1
