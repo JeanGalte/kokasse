@@ -1,6 +1,6 @@
 type ident = string
 
-type binop = Plus | Less | Times | Div | Mod | And | Or | Lt | Gt | Slt | Sgt 
+type binop = Plus | Less | Times | Div | Mod | Concat | And | Or | Lt | Gt | Slt | Sgt | Eq | Neq
 
 type unop = Not | Nint
 

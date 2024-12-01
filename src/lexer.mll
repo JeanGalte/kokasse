@@ -1,10 +1,16 @@
 {
-open Lexing
-open Parser
+  open Lexing
+  open Parser
 
 exception Erreur_lexicale of string
 
 exception Impossible
+
+let rec last_elem (l : 'a list) : 'a =
+    match l with
+    | [x] -> x
+    | _ :: tl -> last_elem tl
+    | _ -> raise Impossible
 
 let id_or_kwd =
   [
@@ -35,9 +41,12 @@ let lex_binop b =
   | "<=" -> [LT]
   | ">=" -> [GT]
   | ":=" -> [DOUBLE_DOT_EGAL]
+  | "==" -> [DOUBLE_EGAL]
+  | "!=" -> [NEQ]
   | "=" -> [EGAL]
   | ";" -> [SEMIC]
   | "->" -> [RIGHTARR]
+  | "++" -> [CONCAT]
   | _ -> raise Impossible
 
 let lex_unop b =
@@ -61,12 +70,9 @@ let lex_other_symb s =
   | '.' -> [DOT]
   | _ -> raise Impossible
 
-
-let pile_indent = ref [0]
-
 }
 
-let space = [' ' '\r']
+let space = [' ' '\t']
 let bool = "true"|"false"
 let digit = ['0'-'9']
 let integer = '0' | '-'? ['1'-'9'] digit*
@@ -79,33 +85,35 @@ let prect = letter | digit
 let k = (other | prect '-' letter)*(prect '-' | '\''*)
 let ident = (lower '-'? | (lower '-' letter))k 
 
-
 let unop = "~"|"!"
 let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
-let end_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"("|"{"|","
-let beg_cont = "+"|"-"|"*"|"/"|"%"|"<"|"<="|">"|"=>"|"=="|"!="|"&&"|"||"|"then"|"else"|"elif"|")"|"}"|","|"->"|"{"|"="|"."|":="
-
-rule token = parse
+rule token  = parse
   | eof { [EOF] }
   | space { token lexbuf }
-  | "\n" { new_line lexbuf ; token lexbuf}
+  | "\n"+ as s
+               { let l = String.length s in
+                 for _=1 to l do 
+                   new_line lexbuf
+                 done; [RET]
+               }
+               
   | "//" { single_line_comment lexbuf}
   | "/*" { multi_line_comment lexbuf }
   | integer as i { [INT (int_of_string i)] }
-  | bool as b {let k = if b = "true" then true else false in [BOOL k] } 
-  | unop as u { lex_unop u}
-  | binop as b { lex_binop b }
-  | other_symb as s { lex_other_symb s } 
+  | bool as b {let k = if b = "true" then true else false in  [BOOL k] } 
+  | unop as u {  (lex_unop u)}
+  | binop as b {  (lex_binop b) }
+  | other_symb as s {  (lex_other_symb s) } 
   | "elif" { [ELSE; IF] }
-  | '"' { [lex_string (Buffer.create 30) lexbuf] }
-  | ident as id { print_string (id^"\n"); find_id id }
+  | '"' {  [lex_string (Buffer.create 30) lexbuf] }
+  | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
   and
     single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
-  | eof { print_string "lal"; [EOF] }
+  | eof { [EOF] }
   | _ { single_line_comment lexbuf }
 and
   multi_line_comment = parse

@@ -1,25 +1,153 @@
 open Lexer
 open Lexing
 open Format
+open Stdlib
 
 exception Impossible
 
+exception Erreur_lex of string
+
 type token2 = Parser.token list
+
+let token_to_string (token : Parser.token) =
+  match token with
+  | EOF -> "EOF"
+  | LB -> "LB"
+  | RB -> "RB"
+  | LP -> "LP"
+  | RP -> "RP"
+  | CRG -> "CRG"
+  | CRD -> "CRD"
+  | LAB -> "LAB"
+  | RAB -> "RAB"
+  | COMMA -> "COMMA"
+  | DOUBLE_DOT -> "DOUBLE_DOT"
+  | DOUBLE_DOT_EGAL -> "DOUBLE_DOT_EGAL"
+  | SEMIC -> "SEMIC"
+  | RIGHTARR -> "RIGHTARR"
+  | DOT -> "DOT"
+  | RET -> "RET"
+  | PLUS -> "PLUS"
+  | MOINS -> "MOINS"
+  | FOIS -> "FOIS"
+  | DIV -> "DIV"
+  | MOD -> "MOD"
+  | CONCAT -> "CONCAT"
+  | GT -> "GT"
+  | EGAL -> "EGAL"
+  | DOUBLE_EGAL -> "DOUBLE_EGAL"
+  | NEQ -> "NEQ"
+  | AND -> "AND"
+  | OR -> "OR"
+  | LT -> "LT"
+  | NOT -> "NOT"
+  | NINT -> "NINT"
+  | FUN -> "FUN"
+  | FN -> "FN"
+  | IF -> "IF"
+  | THEN -> "THEN"
+  | ELSE -> "ELSE"
+  | RETURN -> "RETURN"
+  | VAL -> "VAL"
+  | VAR -> "VAR"
+  | INT i -> "INT(" ^ string_of_int i ^ ")"
+  | BOOL b -> "BOOL(" ^ string_of_bool b ^ ")"
+  | STRING s -> "STRING(" ^ s ^ ")"
+  | IDENT id -> "IDENT(" ^ id ^ ")"
+
+let print_tokens (l : Parser.token list) : unit =
+  List.iter (fun t -> print_string ((token_to_string t )^";")) l
+
+let rec last_elem l =
+  match l with
+  | [x] -> x
+  | _ :: tl -> last_elem tl
+  | _ -> raise Impossible
+
+
+let is_beg_cont (token : token2) : bool =
+  let t = last_elem token in 
+  match t with
+  | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
+  | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
+  | AND  | OR | THEN | ELSE | RP | RB
+  | COMMA | RIGHTARR | LB | EGAL | DOT | DOUBLE_DOT_EGAL
+    -> true
+  | _ -> false
+
+let is_end_cont (token : token2) : bool =
+  let t = last_elem token in 
+  match t with
+  | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
+  | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
+  | AND | OR | LP | LB | COMMA
+    -> true
+  | _ -> false
+
+let ucond (lastt : Parser.token) (nextt : token2) : bool =
+  not ((is_end_cont [lastt]) || (is_beg_cont nextt)) 
+
+let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
+  let last_tok = ref Parser.SEMIC in
+  let pile_indent = ref [0] in
+  fun l ->
+  match tokenf l with
+  | [RET] ->
+     let nextt = tokenf l in
+     let p = lexeme_start_p l in
+     let c = p.pos_cnum - p.pos_bol in
+     let m = ref (List.hd !pile_indent) in     
+     if c > !m then
+       let emit_lb =
+         if (ucond !last_tok nextt) then
+           (last_tok := LB; true)
+         else
+           false in
+       if (!last_tok = LB) then pile_indent := c :: !pile_indent; 
+       if emit_lb then
+   	 Parser.LB :: nextt
+       else
+	 nextt 
+       else 
+	 let rb_count = ref 0 in 
+	 while c < !m do
+	   pile_indent := List.tl !pile_indent;
+	   m := List.hd !pile_indent;
+	   if (nextt <> [RB]) then (rb_count := !rb_count+1)	 
+	 done;
+	 if c > !m then
+	   raise (Erreur_lex "Erreur d'indentation")
+	 else
+	   let rbs =
+             List.init
+               (2 * !rb_count)
+               (fun i -> if i mod 2 = 0 then Parser.SEMIC else Parser.RB)
+           in
+           if !rb_count >= 1 then last_tok := RB;
+	   let p_d = if (ucond !last_tok nextt) then Parser.SEMIC :: nextt else nextt in
+	   rbs @ p_d
+  | _ as ltok -> last_tok := (last_elem ltok); ltok 
+  
+
+let print_token_f (tokenf : lexbuf -> Parser.token) : lexbuf -> Parser.token =
+  fun l ->
+  let t = tokenf l in print_endline (token_to_string t); t
 
 let token2f (tokenf : lexbuf -> token2) : lexbuf -> Parser.token =
   let buf = ref None in
   fun l ->
-     match !buf with
-     | Some v ->
-        (match v with
-         | [x] -> buf := None; x
-         | h :: tl -> buf := Some tl; h
-         | _ -> raise Impossible)        
-     | None ->
-        match tokenf l with
-        | [x] -> buf := None; x
-        | h :: tl -> buf := Some tl; h
-        | _ -> raise Impossible
+  match !buf with
+  | Some v ->
+     (match v with
+      | [x] -> buf := None; x
+      | h :: tl -> buf := Some tl; h
+      | _ -> raise Impossible)        
+  | None ->
+     let a = tokenf l in 
+     match a with
+     | [x] -> buf := None; x
+     | h :: tl -> buf := Some tl; h
+     | _ -> raise Impossible
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -27,15 +155,13 @@ let print_position outx lexbuf =
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
-  try (Parser.prog (token2f Lexer.token) lexbuf) with
+  try (Parser.prog (token2f (add_indent_data Lexer.token)) lexbuf) with
   | Erreur_lexicale msg  ->
-    fprintf err_formatter "%a: %s\n" print_position lexbuf msg;
+    fprintf err_formatter "%a: Erreur lexicale %s\n" print_position lexbuf msg;
     exit 1
   | Parser.Error ->
     fprintf err_formatter "%a: Erreur syntaxique \n" print_position lexbuf;
     exit 1
-
-
 
 let () = 
 
@@ -60,4 +186,4 @@ let () =
       print_string "l'analyse sémantique n'est pas encore implémentée"
     else
       print_string "la production de code n'est pas encore implémentée"
-    
+   
