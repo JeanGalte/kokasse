@@ -58,7 +58,7 @@ let lex_unop b =
 let lex_other_symb s =
   match s with 	   
   | '{' ->  [LB]
-  | '}' ->  [RB]
+  | '}' ->  [SEMIC; RB]
   | '(' -> [LP]
   | ')' -> [RP]
   | ',' -> [COMMA]

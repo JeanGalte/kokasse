@@ -3,12 +3,12 @@
 
     exception Effet_non_reconnu of string
 
-    exception Bloc_ne_se_terminant_pas_par_une_expression
+    exception Bloc_malforme of string
     
     let parse_effect (e : string) : effect =
       if e = "div" then Diverge else
 	if e = "console" then Console else
-	  raise (Effet_non_reconnu e)
+	  raise (Effet_non_reconnu ("L'effet "^e^" n'est pas reconnu"))
 
     let rec is_last_expr (sl : stmt list) : bool =
       match sl with
@@ -17,8 +17,11 @@
       | [] -> true
 
     let check_block (b : stmt list) : unit =
-      if (is_last_expr b) then () else raise Bloc_ne_se_terminant_pas_par_une_expression
-	  
+      if not (is_last_expr b) then
+	(raise
+	  (Bloc_malforme
+	     "Le bloc est malformé, il ne termine pas par une expression évaluable en une valeur")
+	 ) 
 %}
 
 %token EOF
@@ -165,7 +168,7 @@ atom:
   | LP e=expr RP {Ex e}
   | a=atom LP l=separated_list(COMMA,expr) RP {Fcall (a, l) }
   | CRG l=separated_list(COMMA, expr) CRD {Elist l}
-  | a=atom DOT LP id=ident RP { Fcall (Id id, [a]) }
+  | a=atom DOT LP e=expr RP { Fcall (e, [a]) }
    /* sucre syntaxique qui lève des conflits  */
   /* | e=expr LP l=separated_list(COMMA, expr) RP FN f=fun_body {Fcall (e, l @ [Fn f])} */
   /* | e=expr b=block { Fcall (e,  [Fn { args = []; ret_type = None; body=b}])} */

@@ -92,7 +92,7 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
   let pile_indent = ref [0] in
   fun l ->
   match tokenf l with
-  | [RET] ->
+  | [RET] -> 
      let nextt = tokenf l in
      let p = lexeme_start_p l in
      let c = p.pos_cnum - p.pos_bol in
@@ -117,7 +117,7 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
 	   if (nextt <> [RB]) then (rb_count := !rb_count+1)	 
 	 done;
 	 if c > !m then
-	   raise (Erreur_lex "Erreur d'indentation")
+           (print_string "Erreur d'indentation"; (exit 1))
 	 else
 	   let rbs =
              List.init
@@ -125,8 +125,8 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
                (fun i -> if i mod 2 = 0 then Parser.SEMIC else Parser.RB)
            in
            if !rb_count >= 1 then last_tok := RB;
-          let p_d = if (ucond !last_tok nextt) then Parser.SEMIC :: nextt else nextt in
-	   rbs @ p_d
+          let p_d = if (ucond !last_tok nextt) then Parser.SEMIC::nextt else nextt in
+	   rbs @ p_d 
        ) in
      last_tok := (last_elem nextt); em
   | _ as ltok -> last_tok := (last_elem ltok); ltok 
@@ -152,19 +152,40 @@ let token2f (tokenf : lexbuf -> token2) : lexbuf -> Parser.token =
      | h :: tl -> buf := Some tl; h
      | _ -> raise Impossible
 
-let print_position outx lexbuf =
+let print_position outx (lexbuf : lexbuf) : unit =
   let pos = lexbuf.lex_curr_p in
   fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-let parse_with_error lexbuf =
-  try (Parser.prog ( print_token_f (token2f (add_indent_data Lexer.token))) lexbuf) with
+let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program =
+  let lexed_with_indent = add_indent_data Lexer.token in
+  let lexed_without_list = token2f lexed_with_indent in
+  let lexed_with_print  = print_token_f lexed_without_list in
+  try (Parser.prog lexed_with_print lexbuf) with
   | Erreur_lexicale msg  ->
-    fprintf err_formatter "%a: Erreur lexicale %s\n" print_position lexbuf msg;
-    exit 1
-  | Parser.Error ->
-    fprintf err_formatter "%a: Erreur syntaxique \n" print_position lexbuf;
-    exit 1
+     let p = lexeme_start_p lexbuf in
+     let l = p.pos_lnum in
+     let c = p.pos_cnum - p.pos_bol in
+     fprintf err_formatter
+             "File \"%s\", line %d, character %d : \n %s\n" 
+             filename
+             l
+             c
+             msg;
+     exit 1
+  (*Ici : comment exporter correctement les erreurs définies dans le parser ?  *)
+  |  Parser.Error ->
+      let p = lexeme_start_p lexbuf in
+     let l = p.pos_lnum in
+     let c = p.pos_cnum - p.pos_bol in
+     fprintf err_formatter
+             "File \"%s\", line %d, character %d : \n" 
+             filename
+             l
+             c
+             ;
+     exit 1
+
 
 let () = 
 
@@ -183,7 +204,7 @@ let () =
   let p,t = !p_only, !t_only in
   if p then    
     let l = Lexing.from_channel (open_in !filename) in 
-     ignore (parse_with_error l)
+     ignore (parse_with_error l !filename)
   else
     if t then
       print_string "l'analyse sémantique n'est pas encore implémentée"
