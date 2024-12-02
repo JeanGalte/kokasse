@@ -76,15 +76,19 @@ let space = [' ' '\t']
 let bool = "true"|"false"
 let digit = ['0'-'9']
 let integer = '0' | '-'? ['1'-'9'] digit*
-
 let lower = ['a'-'z'] | '_'
 let upper = ['A'-'Z']
 let letter = ['a'-'z'] | ['A' - 'Z']
 let other = digit | lower | upper
-let prect = letter | digit
-let k = (other | prect '-' letter)*(prect '-' | '\''*)
-let ident = (lower '-'? | (lower '-' letter))k 
+let prect = (letter | digit) '-'
 
+
+let b = (other | prect+ letter)*(prect+ | '\''*)
+                                 
+let c = prect*((letter b) ?)
+
+let ident = lower b | prect c
+  
 let unop = "~"|"!"
 let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
