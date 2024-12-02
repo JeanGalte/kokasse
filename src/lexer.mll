@@ -90,7 +90,7 @@ let c = prect*((letter b) ?)
 let ident = lower b | prect c
   
 let unop = "~"|"!"
-let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|";"|"->"
+let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|"=="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
 rule token  = parse
