@@ -55,12 +55,12 @@ fun_def:
 ;
 
 fun_body:
-  | LP args_spec=separated_list(COMMA, arg_type_spec) r=ret_type? RP e=expr
+  | LP args_spec=separated_list(COMMA, arg_type_spec) RP r=ret_type? e=expr
     {{args=args_spec; ret_type=r; body=e}}
 ;
 
 ret_type:
-  | DOUBLE_DOT  r=result { r }
+  | DOUBLE_DOT r=result { r }
 ;
 
 result:
