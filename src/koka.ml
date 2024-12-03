@@ -210,18 +210,6 @@ let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program =
              l
              c;
      exit 1
-  | Effet_non_reconnu e ->
-     let p = lexeme_start_p lexbuf in
-     let l = p.pos_lnum in
-     let c = p.pos_cnum - p.pos_bol in
-     fprintf err_formatter
-             "File \"%s\", line %d, character %d : \n
-              Effet %s non reconnu \n"
-             filename
-             l
-             c
-             e;
-     exit 1
   |  Parser.Error ->
       let p = lexeme_start_p lexbuf in
       let l = p.pos_lnum in

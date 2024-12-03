@@ -70,6 +70,12 @@ let lex_other_symb s =
   | '.' -> [DOT]
   | _ -> raise Impossible
 
+let lex_tf s =
+  match s with
+  | "True" -> [BOOL true]
+  | "False" -> [BOOL false]
+  | _ -> raise Impossible
+
 let last_tok = ref SEMIC
 let pile_indent = ref [0]
 
@@ -92,6 +98,7 @@ let upper = ['A'-'Z']
 let letter = ['a'-'z'] | ['A' - 'Z']
 let other = digit | lower | upper
 let prect = (letter | digit) '-'
+let tf = "True"|"False"
 
 let beg_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
                |"then"|"else"|')'|'}'|','|"->"|'{'|"="|"."| ":="
@@ -130,8 +137,9 @@ rule token  = parse
   | other_symb as s {  (lex_other_symb s) } 
   | "elif" { [ELSE; IF] }
   | '"' {  [lex_string (Buffer.create 30) lexbuf] }
+  | tf as t {lex_tf t}
   | ident as id { find_id id }
-  | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
+  | _ { raise (Erreur_lexicale ("Lexème non reconnu "^Lexing.lexeme lexbuf)) }
 and single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
   | eof { [EOF] }

@@ -2,12 +2,9 @@
     open Ast
 
     open Parser_exceptions
-    
-    let parse_effect (e : string) : effect =
-      if e = "div" then Diverge else
-	if e = "console" then Console else
-	  raise (Effet_non_reconnu ("L'effet "^e^" n'est pas reconnu"))
 
+    let parse_effect (i : string) : effect = Eff i
+    
     let rec is_last_expr (sl : stmt list) : bool =
       match sl with
       | [x] -> (match x with |  E _ -> true | _ -> false)

@@ -5,9 +5,8 @@ type binop = Plus | Less | Times | Div | Mod | Concat | And | Or | Lt | Gt | Slt
 type unop = Not | Nint
 
 type effect =
-  | Console
-  | Diverge
-
+  Eff of ident
+  
 type o_type =
   | Typename of ident
   | Composed_type of (ident * o_type)
@@ -49,3 +48,4 @@ and
 type decl = ident*funbody 
 
 type program = decl list 
+
