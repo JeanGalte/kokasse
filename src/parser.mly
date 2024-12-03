@@ -1,9 +1,7 @@
 %{
     open Ast
 
-    exception Effet_non_reconnu of string
-
-    exception Bloc_malforme of string
+    open Parser_exceptions
     
     let parse_effect (e : string) : effect =
       if e = "div" then Diverge else
@@ -18,10 +16,7 @@
 
     let check_block (b : stmt list) : unit =
       if not (is_last_expr b) then
-	(raise
-	  (Bloc_malforme
-	     "Le bloc est malformé, il ne termine pas par une expression évaluable en une valeur")
-	 ) 
+	raise (Bloc_malforme) 
 %}
 
 %token EOF
@@ -177,7 +172,7 @@ atom:
 otype:
   | a = atype { a }
   | a = atype RIGHTARR r=result { Calcul_t ([a], r) }
-  | LP t1=otype COMMA t2=otype COMMA tl=separated_list(COMMA, otype) RP RIGHTARR r=result { Calcul_t (t1 :: t2 :: tl, r) }
+  | LP t1=otype COMMA tl=separated_nonempty_list(COMMA, otype) RP RIGHTARR r=result { Calcul_t (t1 :: tl, r) }
 ;
 
 atype:

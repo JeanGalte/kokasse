@@ -70,6 +70,17 @@ let lex_other_symb s =
   | '.' -> [DOT]
   | _ -> raise Impossible
 
+let last_tok = ref SEMIC
+let pile_indent = ref [0]
+
+let is_end_cont (t : token) : bool =
+  match t with
+  | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
+  | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
+  | AND | OR | LP | LB | COMMA
+    -> true
+  | _ -> false
+
 }
 
 let space = [' ' '\t']
@@ -82,7 +93,13 @@ let letter = ['a'-'z'] | ['A' - 'Z']
 let other = digit | lower | upper
 let prect = (letter | digit) '-'
 
+let beg_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
+               |"then"|"else"|')'|'}'|','|"->"|'{'|"="|"."| ":="
 
+let end_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
+               |'('|')'|','
+
+               
 let b = (other | prect+ letter)*(prect+ | '\''*)
                                  
 let c = prect*((letter b) ?)
@@ -100,7 +117,8 @@ rule token  = parse
                { let l = String.length s in
                  for _=1 to l do 
                    new_line lexbuf
-                 done; [RET]
+                 done;
+                 [RET]
                }
                
   | "//" { single_line_comment lexbuf}
@@ -114,13 +132,11 @@ rule token  = parse
   | '"' {  [lex_string (Buffer.create 30) lexbuf] }
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu"^Lexing.lexeme lexbuf)) }
-  and
-    single_line_comment = parse
+and single_line_comment = parse
   | "\n" { new_line lexbuf; token lexbuf }
   | eof { [EOF] }
   | _ { single_line_comment lexbuf }
-and
-  multi_line_comment = parse
+and  multi_line_comment = parse
   | "*/" { token lexbuf }
   | "\n" { new_line lexbuf; multi_line_comment lexbuf}
   | eof {raise (Erreur_lexicale "Commentaire non fermé")}
