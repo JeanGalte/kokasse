@@ -21,7 +21,8 @@ let id_or_kwd =
     ("then", [THEN]);
     ("else", [ELSE]);
     ("val", [VAL]);
-    ("var", [VAR])
+    ("var", [VAR]);
+    ("return", [RETURN])
    ]
 
 let find_id (s : string) =
@@ -114,7 +115,7 @@ let c = prect*((letter b) ?)
 let ident = lower b | prect c
   
 let unop = "~"|"!"
-let binop = "+"|"-"|"*"|"/"|"&&"|"||"|"<="|"=>"|":="|"="|"=="|";"|"->"
+let binop = "+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|"=>"|":="|"!="|"="|"=="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
 rule token  = parse
@@ -128,7 +129,7 @@ rule token  = parse
                  [RET]
                }
                
-  | "//" { single_line_comment lexbuf}
+  | "//" { single_line_comment lexbuf }
   | "/*" { multi_line_comment lexbuf }
   | integer as i { [INT (int_of_string i)] }
   | bool as b {let k = if b = "true" then true else false in  [BOOL k] } 
@@ -141,9 +142,9 @@ rule token  = parse
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu "^Lexing.lexeme lexbuf)) }
 and single_line_comment = parse
-  | "\n" { new_line lexbuf; token lexbuf }
+  | "\n" {new_line lexbuf; token lexbuf}
   | eof { [EOF] }
-  | _ { single_line_comment lexbuf }
+  | _ {single_line_comment lexbuf }
 and  multi_line_comment = parse
   | "*/" { token lexbuf }
   | "\n" { new_line lexbuf; multi_line_comment lexbuf}

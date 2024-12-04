@@ -89,15 +89,17 @@ let ucond (lastt : Parser.token) (nextt : token2) : bool =
   not ((is_end_cont [lastt]) || (is_beg_cont nextt)) 
 
 let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
-  let last_tok = ref Parser.SEMIC in
+  let last_tok = ref THEN in
   let pile_indent = ref [0] in
   fun l ->
   match tokenf l with
   | [RET] ->
+     print_newline (); print_token !last_tok; print_newline (); 
      let nextt = tokenf l in
      let p = lexeme_start_p l in
      let c = p.pos_cnum - p.pos_bol in
      let m = ref (List.hd !pile_indent) in
+     (* printf "Nouveau retour à la ligne :\n";  (List.iter (fun i -> print_int i; print_string ";") !pile_indent); print_newline ();   *)
      let em = (
          if c > !m then
            let emit_lb =
@@ -115,9 +117,8 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
 	     while c < !m do
 	       pile_indent := List.tl !pile_indent;
 	       m := List.hd !pile_indent;
-	       if (nextt <> [RB]) then (rb_count := !rb_count+1);
-	       
-	     done;
+	       if (nextt <> [RB]) then (rb_count := !rb_count+1);	       
+	     done; print_int !rb_count; 
 	     if c > !m then
                (print_string "Erreur d'indentation"; (exit 1))
 	     else
@@ -150,9 +151,9 @@ let add_indent_data (tokenf : lexbuf -> token2) : lexbuf -> token2 =
          (2 * !rb_count)
          (fun i -> if i mod 2 = 0 then Parser.SEMIC else Parser.RB)
      in
-        rbs @ [EOF]
-  | _ as ltok -> last_tok := (last_elem ltok); ltok
+     rbs @ [EOF]
   
+  | _ as ltok -> if (List.exists (fun t -> t=RET) ltok) then List.iter print_token ltok;  last_tok := (last_elem ltok); ltok
 
 let add_semics (tokenf : lexbuf -> token2) : lexbuf -> token2 =
   fun l ->
@@ -181,8 +182,15 @@ let token2f (tokenf : lexbuf -> token2) : lexbuf -> Parser.token =
      | h :: tl -> buf := Some tl; h
      | _ -> raise Impossible
 
+let pass_last_tok (tokenf : lexbuf -> token2) : (lexbuf -> (token2 * token)) =
+  let last_tok = ref SEMIC in
+  let swap  = ref SEMIC in 
+  fun l ->
+  let t = tokenf l in
+  swap := !last_tok; last_tok := last_elem t; (t, !swap)
+          
 
-let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program = 
+let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program =
   let lexed_with_indent = add_indent_data Lexer.token in
   let lexed_with_semics = add_semics lexed_with_indent in
   let lexed_without_list = token2f lexed_with_semics in

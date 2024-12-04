@@ -98,6 +98,7 @@ stmt:
 bexpr:
   | e = if_expr { e }
   | e = or_expr { e }
+  | id = ident DOUBLE_DOT_EGAL e = bexpr { Stmts [Var (id, e) ] }
   | FN f=fun_body {Fn f}
   | RETURN e=expr {Return e}
 ;
@@ -109,8 +110,8 @@ if_expr:
 
 or_expr:
   | e1 = and_expr OR e2 = and_expr { Binop (Or, e1, e2) }
-  | e=and_expr {e}
-;
+  | e=and_expr {e};
+
 
 and_expr:
   | e1 = bool_expr1 AND e2 = bool_expr1 { Binop (Lt, e1, e2) }
