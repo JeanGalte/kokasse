@@ -2,7 +2,9 @@
  (modules lexer))
 
 (menhir
- (modules parser))
+ (modules parser)
+ (flags --unused-token RET --unused-token ELIF)
+)
   
 (executable
  (name koka)
