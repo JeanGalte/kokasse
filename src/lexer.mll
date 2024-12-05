@@ -6,87 +6,69 @@ exception Erreur_lexicale of string
 
 exception Impossible
 
-let rec last_elem (l : 'a list) : 'a =
-    match l with
-    | [x] -> x
-    | _ :: tl -> last_elem tl
-    | _ -> raise Impossible
-
-let id_or_kwd =
-  [
-    ("fun", [FUN]);
-    ("fn", [FN]);
-    ("if", [IF]);
-    ("elif", [ELSE; IF]);
-    ("then", [THEN]);
-    ("else", [ELSE]);
-    ("val", [VAL]);
-    ("var", [VAR]);
-    ("return", [RETURN])
-   ]
+let kwd =  
+    [("fun", FUN);
+    ("fn", FN);
+    ("if", IF);
+    ("elif", ELIF);
+    ("then", THEN);
+    ("else", ELSE);
+    ("val", VAL);
+    ("var", VAR);
+    ("return", RETURN)]
+   
 
 let find_id (s : string) =
-  match List.assoc_opt s id_or_kwd with
+  match List.assoc_opt s kwd with
   | Some kw ->  kw
-  | None -> [IDENT s]
+  | None -> IDENT s
 
 let lex_binop b =
   match b with
-  | "%" -> [MOD]
-  | "+" -> [PLUS]
-  | "-" -> [MOINS]
-  | "*" -> [FOIS]
-  | "/" -> [DIV]
-  | "&&" -> [AND]
-  | "||" -> [OR]
-  | "<=" -> [LT]
-  | ">=" -> [GT]
-  | ":=" -> [DOUBLE_DOT_EGAL]
-  | "==" -> [DOUBLE_EGAL]
-  | "!=" -> [NEQ]
-  | "=" -> [EGAL]
-  | ";" -> [SEMIC]
-  | "->" -> [RIGHTARR]
-  | "++" -> [CONCAT]
+  | "%" -> MOD
+  | "+" -> PLUS
+  | "-" -> MOINS
+  | "*" -> FOIS
+  | "/" -> DIV
+  | "&&" -> AND
+  | "||" -> OR
+  | "<=" -> LT
+  | ">=" -> GT
+  | ":=" -> DOUBLE_DOT_EGAL
+  | "==" -> DOUBLE_EGAL
+  | "!=" -> NEQ
+  | "=" -> EGAL
+  | ";" -> SEMIC
+  | "->" -> RIGHTARR
+  | "++" -> CONCAT
   | _ -> raise Impossible
 
 let lex_unop b =
    match b with
-  | '!' -> [NOT]
-  | '~' -> [NINT]
+  | '!' -> NOT
+  | '~' -> NINT
   | _ -> raise Impossible
 
 let lex_other_symb s =
-  match s with 	   
-  | '{' ->  [LB]
-  | '}' ->  [RB]
-  | '(' -> [LP]
-  | ')' -> [RP]
-  | ',' -> [COMMA]
-  | ':' -> [DOUBLE_DOT]
-  | '<' -> [LAB]
-  | '>' -> [RAB]
-  | '[' -> [CRG]
-  | ']' -> [CRD]
-  | '.' -> [DOT]
+  match s with
+  | '{' ->  LB
+  | '}' ->  RB
+  | '(' -> LP
+  | ')' -> RP
+  | ',' -> COMMA
+  | ':' -> DOUBLE_DOT
+  | '<' -> LAB
+  | '>' -> RAB
+  | '[' -> CRG
+  | ']' -> CRD
+  | '.' -> DOT
   | _ -> raise Impossible
 
 let lex_tf s =
   match s with
-  | "True" -> [BOOL true]
-  | "False" -> [BOOL false]
+  | "True" -> BOOL true
+  | "False" -> BOOL false
   | _ -> raise Impossible
-
-let last_tok = ref SEMIC
-let pile_indent = ref [0]
-
-let is_end_cont (t : token) : bool =
-  match t with
-  | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
-  | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
-  | AND | OR | LP | LB | COMMA
-    -> true
-  | _ -> false
 
 }
 
@@ -106,7 +88,6 @@ let beg_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
 
 let end_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
                |'('|')'|','
-
                
 let b = (other | prect+ letter)*(prect+ | '\''*)
                                  
@@ -119,31 +100,30 @@ let binop = "+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|"=>"|":="|"!="|"="|"=="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
 rule token  = parse
-  | eof { [EOF] }
+  | eof { EOF }
   | space { token lexbuf }
   | "\n"+ as s
                { let l = String.length s in
-                 for _=1 to l do 
+                 for _=1 to l do
                    new_line lexbuf
                  done;
-                 [RET]
+                 RET
                }
                
   | "//" { single_line_comment lexbuf }
   | "/*" { multi_line_comment lexbuf }
-  | integer as i { [INT (int_of_string i)] }
-  | bool as b {let k = if b = "true" then true else false in  [BOOL k] } 
+  | integer as i { INT (int_of_string i) }
+  | bool as b {let k = if b = "true" then true else false in  BOOL k }
   | unop as u {  (lex_unop u)}
   | binop as b {  (lex_binop b) }
-  | other_symb as s {  (lex_other_symb s) } 
-  | "elif" { [ELSE; IF] }
-  | '"' {  [lex_string (Buffer.create 30) lexbuf] }
+  | other_symb as s { (lex_other_symb s) }
+  | '"' {  lex_string (Buffer.create 30) lexbuf }
   | tf as t {lex_tf t}
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu "^Lexing.lexeme lexbuf)) }
 and single_line_comment = parse
   | "\n" {new_line lexbuf; token lexbuf}
-  | eof { [EOF] }
+  | eof { EOF }
   | _ {single_line_comment lexbuf }
 and  multi_line_comment = parse
   | "*/" { token lexbuf }
@@ -152,9 +132,9 @@ and  multi_line_comment = parse
   | _ { multi_line_comment lexbuf }
 and lex_string buf = parse
   | '"'       { STRING (Buffer.contents buf) }
-  | '\\' 'n'  { Buffer.add_char buf '\n'; lex_string buf lexbuf }     
+  | '\\' 'n'  { Buffer.add_char buf '\n'; lex_string buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; lex_string buf lexbuf }
-  | '\\' '"'  { Buffer.add_char buf '\"'; lex_string buf lexbuf }      
+  | '\\' '"'  { Buffer.add_char buf '\"'; lex_string buf lexbuf }
   | [^ '"' '\\']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       lex_string buf lexbuf
@@ -164,3 +144,96 @@ and lex_string buf = parse
             (Erreur_lexicale ("La chaîne de caractère "^(Buffer.contents buf)^"n'est pas terminée"))
         }
 
+{
+  (* Fonctions pour le lexage. *)
+  (* Leur rôle (dans cet ordre): *)
+  (*   -Appliquer l'algo d'indentation *)
+  (*   -Remplacer } par ;} *)
+  (*   -Via une file, passer du flot de  au flot de tokens *)
+
+  let indent_stack = Stack.create ()
+
+  let () = Stack.push 0 indent_stack
+
+  let last_tok = ref EOF 
+
+  let push_indent_stack (i : int) : unit = Stack.push i indent_stack
+                           
+  let pop_indent_stack () =
+    Stack.pop indent_stack
+  
+  let tok_queue : token Queue.t = Queue.create ()
+
+  let push_token (t : token) : unit = last_tok := t; Queue.push t tok_queue
+  
+  let pop_token () = Queue.pop tok_queue
+
+  let is_beg_cont (t : token) : bool =
+    match t with
+    | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
+      | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
+      | AND  | OR | THEN | ELSE | ELIF | RP | RB
+      | COMMA | RIGHTARR | LB | EGAL | DOT | DOUBLE_DOT_EGAL
+      -> true
+    | _ -> false
+  
+  let is_end_cont (t : token) : bool =
+    match t with
+    | PLUS | MOINS | FOIS | DIV | MOD | CONCAT
+      | LT | GT | LAB | RAB | DOUBLE_EGAL | NEQ
+      | AND | OR | LP | LB | COMMA
+      -> true
+    | _ -> false
+  
+  let emit_tok (t : token) : unit  =   
+    (match t with
+    | ELIF -> push_token ELSE; push_token IF
+    | RB -> push_token SEMIC; push_token RB
+    | _ as t' -> push_token t')         
+
+  let handle_ret (lexfun : lexbuf -> token) (l : lexbuf) (t : token) : unit =
+    match t with
+    | RET ->
+         let next_tok = lexfun l in
+         let pos = lexeme_start_p l in
+         let col = pos.pos_cnum - pos.pos_bol in
+         let m = ref (Stack.top indent_stack) in
+         let ucond () = not (is_beg_cont next_tok || is_end_cont !last_tok) in
+         let () =
+         (if col > !m then
+            (if ucond () then emit_tok LB;
+            if !last_tok = LB then push_indent_stack col)
+         else
+           (while col < !m do
+              ignore (pop_indent_stack ());
+              m := Stack.top indent_stack;
+              print_int (Stack.length indent_stack); print_newline (); 
+             emit_tok RB
+           done;
+           if col > !m then
+             raise (Erreur_lexicale "problème d'indentation")
+           else
+             if ucond () then emit_tok SEMIC
+           )
+         ) in 
+         emit_tok next_tok
+    | EOF ->
+       let c = 0 in
+       let m = ref (Stack.top indent_stack) in
+       while c < !m do
+         ignore (pop_indent_stack ());
+         m := Stack.top indent_stack;
+         emit_tok RB
+       done;
+       emit_tok EOF        
+    | _ as t' -> emit_tok t'
+
+  let next_token (lexfun : lexbuf -> token) : lexbuf -> token =
+    fun l ->
+    if Queue.is_empty tok_queue then
+      (let t = lexfun l in
+      handle_ret lexfun l t);
+    (pop_token ())
+
+  
+}
