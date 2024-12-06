@@ -13,7 +13,8 @@
 
     let check_block (b : stmt list) : unit =
       if not (is_last_expr b) then
-	raise (Bloc_malforme) 
+	raise (Bloc_malforme)
+ 
 %}
 
 /* Tokens morts */
@@ -98,22 +99,23 @@ stmt:
   | VAR i=ident DOUBLE_DOT_EGAL e=expr {Var (i, e)}
 ;
 
-bexpr:
+bexpr: 
   | e = if_expr { e }
-  | e = or_expr { e }
   | id = ident DOUBLE_DOT_EGAL e = bexpr { Stmts [Var (id, e) ] }
-  | FN f=fun_body {Fn f}
   | RETURN e=expr {Return e}
+  | FN f=fun_body { Fn f }
 ;
 
 if_expr:
-  | IF e=bexpr THEN e1=expr ELSE e2=expr {If_then_else (e, e1, e2)}
-  | IF e1=bexpr RETURN e2=expr {If_then_else (e1, Return e2, Stmts [])}
+  | IF e=bexpr THEN e1=expr ELSE e2=expr { If_then_else (e, e1, e2) }
+  | IF e1=bexpr RETURN e2=expr { If_then_else (e1, Return e2, Stmts []) }
+  | e = or_expr { e }
 ;
 
 or_expr:
   | e1 = and_expr OR e2 = and_expr { Binop (Or, e1, e2) }
-  | e=and_expr {e};
+  | e=and_expr {e}
+;
 
 
 and_expr:
@@ -144,7 +146,7 @@ arith_expr1:
 
 arith_expr2:
   | e1 = arith_expr2 FOIS e2 = arith_expr3 { Binop (Times, e1, e2)}
-  | e1 = arith_expr2 DIV e2 = arith_expr3 { Binop (Div, e1, e2)}
+  | e1 = arith_expr2 DIV e2 = arith_expr3 { Binop (Div, e1, e2) }
   | e1 = arith_expr2 MOD e2 = arith_expr3 { Binop (Mod, e1, e2) }
   | e1 = arith_expr2 CONCAT e2 = arith_expr3 { Binop (Concat, e1, e2) }
   | e = arith_expr3 {e}
@@ -159,13 +161,22 @@ atom:
   | b = BOOL { Bool b }
   | i = INT {  Int i }
   | s = STRING { String s }
-  | i = ident {Id i}
+  | i = ident { Id i }
   | LP RP  { Unit }
-  | LP e=expr RP {Ex e}
-  | a=atom LP l=separated_list(COMMA,expr) RP {Fcall (a, l) }
-  | CRG l=separated_list(COMMA, expr) CRD {Elist l}
+  | LP e=expr RP { Ex e }
+  | a=atom LP l=separated_list(COMMA,expr) RP { Fcall (a, l) }
+  | CRG l=separated_list(COMMA, expr) CRD { Elist l }
   | a=atom DOT LP e=expr RP { Fcall (e, [a]) }
-   /* sucre syntaxique qui lève des conflits  */
+  | a = atom b=block
+    {
+      match a with
+      | Fcall (e, l) -> Fcall (e, (Fn {args=[]; ret_type=None; body=b } ) :: l)
+      | _ -> Fcall (a,
+	       [ (Fn {args=[]; ret_type=None; body = b}) ]
+	      )
+	
+    }
+/* sucre syntaxique qui lève des conflits  */
   /* | e=expr LP l=separated_list(COMMA, expr) RP FN f=fun_body {Fcall (e, l @ [Fn f])} */
   /* | e=expr b=block { Fcall (e,  [Fn { args = []; ret_type = None; body=b}])} */
 ;

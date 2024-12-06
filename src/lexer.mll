@@ -96,14 +96,15 @@ let c = prect*((letter b) ?)
 let ident = lower b | prect c
   
 let unop = "~"|"!"
-let binop = "+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|"=>"|":="|"!="|"="|"=="|";"|"->"
+let binop = "+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|">="|":="|"!="|"="|"=="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
 rule token  = parse
   | eof { EOF }
   | space { token lexbuf }
   | "\n"+ as s
-               { let l = String.length s in
+               {
+                 let l = String.length s in
                  for _=1 to l do
                    new_line lexbuf
                  done;
@@ -191,7 +192,7 @@ and lex_string buf = parse
     | RB -> push_token SEMIC; push_token RB
     | _ as t' -> push_token t')         
 
-  let handle_ret (lexfun : lexbuf -> token) (l : lexbuf) (t : token) : unit =
+  let lex_with_ret (lexfun : lexbuf -> token) (l : lexbuf) (t : token) : unit =
     match t with
     | RET ->
          let next_tok = lexfun l in
@@ -207,8 +208,7 @@ and lex_string buf = parse
            (while col < !m do
               ignore (pop_indent_stack ());
               m := Stack.top indent_stack;
-              print_int (Stack.length indent_stack); print_newline (); 
-             emit_tok RB
+              if next_tok <> RB then emit_tok RB;
            done;
            if col > !m then
              raise (Erreur_lexicale "problème d'indentation")
@@ -232,7 +232,7 @@ and lex_string buf = parse
     fun l ->
     if Queue.is_empty tok_queue then
       (let t = lexfun l in
-      handle_ret lexfun l t);
+      lex_with_ret lexfun l t);
     (pop_token ())
 
   

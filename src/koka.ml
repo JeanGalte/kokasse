@@ -63,41 +63,29 @@ let print_tokens_flow (tokenf : lexbuf -> token) : lexbuf -> token =
   let t = tokenf l in
   print_token t; print_newline (); t
 
+let print_err_msg (lb : lexbuf) (filename : string) (msg : string): unit =
+  let beg_pos = lexeme_start_p lb in
+  let end_pos = lexeme_end_p lb in
+  let l = beg_pos.pos_lnum in
+  let beg_c = beg_pos.pos_cnum - beg_pos.pos_bol in
+  let end_c = end_pos.pos_cnum - end_pos.pos_bol in
+  fprintf err_formatter  "File \"%s\", line %d, characters %d-%d:\n%s" filename l beg_c end_c msg
+  
+
 let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program =
   let lexed = Lexer.next_token Lexer.token in
   let lexed_with_print = print_tokens_flow lexed in
   try (Parser.prog lexed_with_print lexbuf) with
   | Lexer.Erreur_lexicale msg  ->
-     let p = lexeme_start_p lexbuf in
-     let l = p.pos_lnum in
-     let c = p.pos_cnum - p.pos_bol in
-     fprintf err_formatter
-             "File \"%s\", line %d, character %d : \n %s\n" 
-             filename
-             l
-             c
-             msg;
+     print_err_msg lexbuf filename msg;
      exit 1
   | Bloc_malforme ->
-     let p = lexeme_start_p lexbuf in
-     let l = p.pos_lnum in
-     let c = p.pos_cnum - p.pos_bol in
-     fprintf err_formatter
-             "File \"%s\", line %d, character %d : \n\
-              Le bloc est mal formé, il ne peut pas se terminer par une déclaration\n"
-             filename
-             l
-             c;
+     let msg = "Le bloc est mal formé, il ne peut pas se terminer par une déclaration" in 
+     print_err_msg lexbuf filename msg; 
      exit 1
   |  Parser.Error ->
-      let p = lexeme_start_p lexbuf in
-      let l = p.pos_lnum in
-      let c = p.pos_cnum - p.pos_bol in
-      fprintf err_formatter
-              "File \"%s\", line %d, character %d :\n erreur à l'analyse syntaxique" 
-              filename
-              l
-              c;
+      let msg = "erreur à l'analyse syntaxique" in
+      print_err_msg lexbuf filename msg; 
       exit 1
 
 let () = 
