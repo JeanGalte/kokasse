@@ -83,12 +83,6 @@ let other = digit | lower | upper
 let prect = (letter | digit) '-'
 let tf = "True"|"False"
 
-let beg_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
-               |"then"|"else"|')'|'}'|','|"->"|'{'|"="|"."| ":="
-
-let end_cont = '+'|'-'|'*'|'/'|'%'|"++"|"<="|">="|'<'|'>'|"=="|"!="|"&&"|"||"
-               |'('|')'|','
-               
 let b = (other | prect+ letter)*(prect+ | '\''*)
                                  
 let c = prect*((letter b) ?)
@@ -96,21 +90,21 @@ let c = prect*((letter b) ?)
 let ident = lower b | prect c
   
 let unop = "~"|"!"
-let binop = "+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|">="|":="|"!="|"="|"=="|";"|"->"
+let binop = "++"|"+"|"-"|"*"|"%"|"/"|"&&"|"||"|"<="|">="|":="|"!="|"="|"=="|";"|"->"
 let other_symb = "{"|"}"|"("|")"|","|":"|"<"|">"|"["|"]"|"."
 
 rule token  = parse
   | eof { EOF }
   | space { token lexbuf }
-  | "\n"+ as s
+  | '\n'+ as s
                {
+                 print_string "test2\n"; 
                  let l = String.length s in
                  for _=1 to l do
                    new_line lexbuf
                  done;
                  RET
                }
-               
   | "//" { single_line_comment lexbuf }
   | "/*" { multi_line_comment lexbuf }
   | integer as i { INT (int_of_string i) }
@@ -123,12 +117,12 @@ rule token  = parse
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu "^Lexing.lexeme lexbuf)) }
 and single_line_comment = parse
-  | "\n" {new_line lexbuf; token lexbuf}
+  | '\n' {print_string "test\n"; new_line lexbuf; token lexbuf}
   | eof { EOF }
   | _ {single_line_comment lexbuf }
 and  multi_line_comment = parse
   | "*/" { token lexbuf }
-  | "\n" { new_line lexbuf; multi_line_comment lexbuf}
+  | "\n' { new_line lexbuf; multi_line_comment lexbuf}
   | eof {raise (Erreur_lexicale "Commentaire non fermé")}
   | _ { multi_line_comment lexbuf }
 and lex_string buf = parse
