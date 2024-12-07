@@ -97,8 +97,7 @@ rule token  = parse
   | eof { EOF }
   | space { token lexbuf }
   | '\n'+ as s
-               {
-                 print_string "test2\n"; 
+               { 
                  let l = String.length s in
                  for _=1 to l do
                    new_line lexbuf
@@ -117,12 +116,19 @@ rule token  = parse
   | ident as id { find_id id }
   | _ { raise (Erreur_lexicale ("Lexème non reconnu "^Lexing.lexeme lexbuf)) }
 and single_line_comment = parse
-  | '\n' {print_string "test\n"; new_line lexbuf; token lexbuf}
+  | '\n'+ as s
+               { 
+                 let l = String.length s in
+                 for _=1 to l do
+                   new_line lexbuf
+                 done;
+                 token lexbuf
+               }
   | eof { EOF }
   | _ {single_line_comment lexbuf }
 and  multi_line_comment = parse
   | "*/" { token lexbuf }
-  | "\n' { new_line lexbuf; multi_line_comment lexbuf}
+  | '\n' { new_line lexbuf; multi_line_comment lexbuf}
   | eof {raise (Erreur_lexicale "Commentaire non fermé")}
   | _ { multi_line_comment lexbuf }
 and lex_string buf = parse
@@ -130,6 +136,7 @@ and lex_string buf = parse
   | '\\' 'n'  { Buffer.add_char buf '\n'; lex_string buf lexbuf }
   | '\\' 't'  { Buffer.add_char buf '\t'; lex_string buf lexbuf }
   | '\\' '"'  { Buffer.add_char buf '\"'; lex_string buf lexbuf }
+  | '\\' '\\' { Buffer.add_char buf '\\'; lex_string buf lexbuf }
   | [^ '"' '\\']+
     { Buffer.add_string buf (Lexing.lexeme lexbuf);
       lex_string buf lexbuf
