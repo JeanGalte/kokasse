@@ -86,7 +86,7 @@ let parse_with_error (lexbuf : lexbuf) (filename : string) : Ast.program =
   |  Parser.Error ->
       let msg = "erreur à l'analyse syntaxique" in
       print_err_msg lexbuf filename msg; 
-      exit 1
+      exit 1 
 
 let () = 
 
@@ -110,4 +110,6 @@ let () =
      print_string
        "La production de code n'étant pas encore implémentée, \
         l'option \'type-only\' n'a pas d'effet");   
-   typecheck prog
+   try typecheck prog with
+   | Type_err msg ->
+      fprintf err_formatter "File \"%s\",  :\n%s" !filename  msg
