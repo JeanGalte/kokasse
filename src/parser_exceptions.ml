@@ -1,4 +1,1 @@
-    
-exception Bloc_malforme 
-
-exception Non_appel
+exception Bloc_malforme

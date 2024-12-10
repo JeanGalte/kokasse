@@ -3,7 +3,7 @@
 
     open Parser_exceptions
 
-    let parse_effect (i : string) : effect = Eff i
+    let parse_effect (i : string) : effect = i
     
     let rec is_last_expr (sl : stmt list) : bool =
       match sl with
@@ -140,15 +140,15 @@ bool_expr2:
 
 arith_expr1:
   | e1 = arith_expr1 PLUS e2 = arith_expr2 { Binop (Plus, e1, e2)}
-  | e1 = arith_expr1 MOINS e2 = arith_expr2 {Binop (Less, e1, e2 ) }
+  | e1 = arith_expr1 MOINS e2 = arith_expr2 {Binop (Less, e1, e2 )}
   | e = arith_expr2 {e}
 ;
 
 arith_expr2:
-  | e1 = arith_expr2 FOIS e2 = arith_expr3 { Binop (Times, e1, e2)}
-  | e1 = arith_expr2 DIV e2 = arith_expr3 { Binop (Div, e1, e2) }
-  | e1 = arith_expr2 MOD e2 = arith_expr3 { Binop (Mod, e1, e2) }
-  | e1 = arith_expr2 CONCAT e2 = arith_expr3 { Binop (Concat, e1, e2) }
+  | e1 = arith_expr2 FOIS e2 = arith_expr3 {Binop (Times, e1, e2)}
+  | e1 = arith_expr2 DIV e2 = arith_expr3 {Binop (Div, e1, e2)}
+  | e1 = arith_expr2 MOD e2 = arith_expr3 {Binop (Mod, e1, e2)}
+  | e1 = arith_expr2 CONCAT e2 = arith_expr3 {Binop (Concat, e1, e2)}
   | e = arith_expr3 {e}
 ;
 
@@ -163,7 +163,7 @@ atom:
   | s = STRING { String s }
   | i = ident { Id i }
   | LP RP  { Unit }
-  | LP e=expr RP { Ex e }
+  | LP e=expr RP { e }
   | a=atom LP l=separated_list(COMMA,expr) RP { Fcall (a, l) }
   | CRG l=separated_list(COMMA, expr) CRD { Elist l }
   | a=atom DOT LP e=expr RP { Fcall (e, [a]) }
@@ -176,7 +176,7 @@ atom:
 	      )
 	
     }
-/* sucre syntaxique qui lève des conflits  */
+  /* sucre syntaxique qui lève des conflits  */
   /* | e=expr LP l=separated_list(COMMA, expr) RP FN f=fun_body {Fcall (e, l @ [Fn f])} */
   /* | e=expr b=block { Fcall (e,  [Fn { args = []; ret_type = None; body=b}])} */
 ;
@@ -190,7 +190,7 @@ otype:
 atype:
   | LP RP { Typename "unit" }
   | LP t=otype RP { t }
-  | id=ident t=composed_type_arg? {match t with | None -> Typename id | Some x -> Composed_type (id, x)}
+  | id=ident t=composed_type_arg? { match t with | None -> Typename id | Some x -> Composed_type (id, x)}
 ;
 
 composed_type_arg:
