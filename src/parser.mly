@@ -65,7 +65,8 @@ ret_type:
 ;
 
 result:
-  | ef_list=effects_spec? r=otype {(r, ef_list)}
+  | ef_list=effects_spec? r=otype
+    {(r, match ef_list with | None -> [] | Some l -> l)}
 ;
 
 effects_spec:
@@ -173,7 +174,7 @@ atom:
       | Fcall (e, l) -> Fcall (e, (Fn {args=[]; ret_type=None; body=b } ) :: l)
       | _ -> Fcall (a,
 	       [ (Fn {args=[]; ret_type=None; body = b}) ]
-	      )
+		   )
 	
     }
   /* sucre syntaxique qui lève des conflits  */

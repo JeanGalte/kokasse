@@ -13,7 +13,7 @@ type o_type =
   | Composed_type of (ident * o_type)
   | Calcul_t of (o_type list) * result_type
 and
-  result_type = o_type * (effect list option)
+  result_type = o_type * (effect list)
 
 type param = (ident * o_type)
 

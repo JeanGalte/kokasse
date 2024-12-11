@@ -13,7 +13,6 @@ let rec string_of_type (t  : o_type) : string =
 and
   string_of_rtype (r : result_type) : string =
   let finaltype, effects = fst r, snd r in
-  let effects = (match effects with | None -> [] | Some l -> l) in
   List.fold_left
     (fun eff1 eff2 -> eff1 ^ " " ^ eff2)
     (string_of_type finaltype)
@@ -39,3 +38,22 @@ let rec string_of_expr (e : expr) : string =
          ")"
          (List.map string_of_expr l)
   | _ -> print_string "pas implémenté"; exit 2
+
+
+let string_of_binop (b : binop) : string =  
+  match b with 
+  | Plus -> "+"
+  | Less -> "-"
+  | Times -> "*"
+  | Div -> "/"
+  | Mod -> "%"
+  | Lt -> "<="
+  | Gt -> ">="
+  | Slt -> "<"
+  | Sgt -> ">"
+  | And -> "&&"
+  | Or -> "||"
+  | Eq -> "=="
+  | Neq -> "!="
+  | Concat -> "++"
+           

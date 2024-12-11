@@ -1,6 +1,7 @@
 open Ast
 open Printer
 
+
 (*
   On renvoie le message d'erreur au format : message, ligne, début-fin de colonne
   Pour l'instant, pas implémenté pour la position exacte de l'erreur
@@ -23,15 +24,25 @@ let check_type_err (e : expr) (expect_type : o_type) (actual_type : o_type) =
   else ()
 
 (* Vérifie si les deux types correspondent bien au type attendu *)
-let check_type_err_bin
-      (e1 : expr)
-      (e2 : expr)
-      (expect_type : o_type)
-      (actual_type1 : o_type)
-      (actual_type2 : o_type)
+let check_multiple_type_err
+      (el : expr list) 
+      (expect_types : o_type list)
+      (actual_types : o_type list)
   =
-  check_type_err e1 expect_type actual_type1;
-  check_type_err e2 expect_type actual_type2
+  let cl = List.combine el (List.combine expect_types actual_types) in
+  List.iter (fun (ex, (et, at)) -> (check_type_err ex et at)) cl  
+
+
+let wrap_mcheck
+      (el : expr list) 
+      (expect_types : o_type list)
+      (actual_types : o_type list)
+      (msg : string)
+  =
+  try check_multiple_type_err el expect_types actual_types with
+    Type_err s ->
+    raise (Type_err (s^" : "^msg))
+    
 
 exception Unrec_id of string 
 
@@ -70,7 +81,12 @@ and type_if_expr (cond : expr) (e1 : expr) (e2 : expr) (venv : venv) : o_type =
      let t1 = type_expr e1 venv in
      let t2 = type_expr e2 venv in
      check_type_err cond (Typename "bool") tcond;
-     check_type_err_bin e1 e2 t1 t1 t2;
+     wrap_mcheck
+       [e1 ; e2]
+       [t1; t1]
+       [t1; t2]
+       " dans une expression conditionnelle, les deux \
+        possibilités doivent avoir le même type"  ;
      t1
 and type_unop_expr (u : unop) (e : expr) (venv : venv) : o_type =
   let t = type_expr e venv in 
@@ -81,74 +97,105 @@ and type_binop_expr (b : binop) (e1 : expr) (e2 : expr) (venv : venv) : o_type=
   let t1, t2 = type_expr e1 venv, type_expr e2 venv in
   match b with 
   | Plus | Less | Times | Div | Mod ->
-     check_type_err_bin e1 e2 (Typename "int") t1 t2; Typename "int"
+     wrap_mcheck
+       [e1; e2]
+       [Typename "int"; Typename "int"]
+       [t1; t2]
+       (Printf.sprintf "L'opérateur %s prend en argument deux entiers"
+                       (string_of_binop b)
+       );
+     Typename "int"
   | Lt | Gt | Slt | Sgt ->
-     check_type_err_bin e1 e2 (Typename "int") t1 t2; Typename "bool"
+     wrap_mcheck
+       [e1; e2]
+       [Typename "int"; Typename "int"]
+       [t1; t2]
+       (Printf.sprintf "L'opérateur %s prend en argument deux entiers"
+                       (string_of_binop b)
+       );
+     Typename "bool"
   | And | Or ->
-     check_type_err_bin e1 e2 (Typename "bool") t1 t2; Typename "bool"
+     wrap_mcheck
+       [e1; e2]
+       [Typename "bool"; Typename "bool"]
+       [t1; t2]
+       (Printf.sprintf "L'opérateur %s prend en argument deux booléens"
+                       (string_of_binop b)
+       );
+     Typename "bool"
   | Eq | Neq ->
-     check_type_err_bin e1 e2 t1 t1 t2; Typename "bool"
+     wrap_mcheck
+       [e1; e2]
+       [Typename "bool"; Typename "bool"]
+       [t1; t2]
+       (Printf.sprintf "L'opérateur %s prend en argument deux expressions de même type"
+                       (string_of_binop b)
+       );
+     Typename "bool"    
   | Concat ->
-     try (check_type_err_bin e1 e2 (Typename "string") t1 t2; Typename "string")
-     with Type_err _ ->
-       match (t1, t2) with
-       | (Composed_type ("list", elt1), Composed_type ("list", elt2)) ->
-          if elt1 <> elt2 then
-            raise (Type_err
-                     (Printf.sprintf 
-                        "Les éléments de %s sont de type %s, et ceux de %s de type %s"
-                        (string_of_expr e1)
-                        (string_of_type elt1)
-                        (string_of_expr e2)
-                        (string_of_type elt2)
-                     )
-                  );
-          (Composed_type ("list", elt1))
-       | _ ->
-          raise (Type_err
-                   (Printf.sprintf
-                      "L'opérateur ++ exige deux chaines de caractères\
-                       ou bien deux listes d'éléments de même type, or
-                       %s est de type %s et %s est de type %s"
-                      (string_of_expr e1)
-                      (string_of_type t1)
-                      (string_of_expr e2)
-                      (string_of_type t2)
-                   )
-                )
-
-
-let type_fun (f : expr) (venv : venv) (fun_name : string) : result_type =
-  ignore fun_name;
-  type_expr f venv, None
- 
+     (* Les deux derniers cas sont un peu bricolés pour ne pas se faire crier dessus par le typechecker *)
+     match (t1, t2) with
+     | (Typename "string", Typename "string") -> Typename "string"
+     | (Composed_type ("list", elt1), Composed_type ("list", elt2))
+          when elt1 = elt2 -> Composed_type ("list", elt1)
+     | (Composed_type ("list", elt1), Composed_type ("list", elt2)) ->
+        wrap_mcheck
+          [e1; e2]
+          [Composed_type ("list", elt1); Composed_type ("list", elt1)]
+          [t1; t2]
+          (Printf.sprintf
+             "Les éléments de la première liste sont de type %s\
+              alors que les éléments de la seconde liste sont de type %s\
+              or on ne peut concaténer que deux listes d'éléments de même type"
+             (string_of_type elt1)
+             (string_of_type elt2)
+          );
+        Composed_type ("list", elt1)
+     | _ ->
+        raise (Type_err
+                 (Printf.sprintf
+                    "L'opérateur ++ prend en argument deux listes d'éléments\
+                     de même type, ou bien deux strings. Or le type de %s \
+                     est %s et celui de %s est %s"
+                    (string_of_expr e1)
+                    (string_of_type t1)
+                    (string_of_expr e2)
+                    (string_of_type t2)
+                 )
+              )
+        
+        
+let type_fun (f : funbody) (fun_name : string) (venv : venv)  : result_type =
+  ignore fun_name; 
+  let args_map = Venv.of_list f.args in
+  let env_w_args = Venv.merge (fun _ x _ -> x) args_map venv in
+  let effects : effect list = [] in (* À faire *)
+  let rtype = (type_expr f.body env_w_args, effects) in
+  let expect_rtype = f.ret_type in
+  (match expect_rtype with
+  | None -> ()
+  | Some rt ->
+     if rt <> rtype then
+       (raise (Type_err
+             (
+               Printf.sprintf
+                 "La fonction %s est censée avoir un type retour %s,
+                  mais elle a un type retour %s"
+                 fun_name
+                 (string_of_rtype rt)
+                 (string_of_rtype rtype)
+             ))); ()
+  );
+  rtype
+  
+  
 let rec type_prog (p : program) (venv : venv) : unit =
   match p with
   | [] -> ()
   | (fun_name, funbody) :: tl ->
-     let args_map = Venv.of_list funbody.args in
-     let fun_type =
-       type_fun
-         funbody.body
-         (Venv.merge (fun _ x _ -> x) args_map venv)
-         fun_name        
-     in
-     (match funbody.ret_type with
-      | None -> ()
-      | Some rt ->
-         if rt <> fun_type then
-           raise (Type_err 
-                    (Printf.sprintf                   
-                       "La fonction %s est anotée par le type %s, mais est typée %s"
-                       fun_name
-                       (string_of_rtype rt)
-                       (string_of_rtype fun_type)
-                    )
-                 )
-     );
-     let calcul_t =
-       Calcul_t (List.map snd funbody.args, fun_type) in 
-     type_prog tl (Venv.add fun_name calcul_t venv) 
+     let ret_type = type_fun funbody fun_name venv in
+     let calcul_type = Calcul_t (List.map snd funbody.args, ret_type) in 
+     type_prog tl (Venv.add fun_name calcul_type venv) 
      
 let typecheck (p : program) : unit =
   type_prog p empty_venv 
