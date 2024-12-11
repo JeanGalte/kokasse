@@ -191,7 +191,7 @@ and lex_string buf = parse
     | ELIF -> push_token ELSE; push_token IF
     | RB -> push_token SEMIC; push_token RB
     | _ as t' -> push_token t')         
-
+ 
   let lex_with_ret (lexfun : lexbuf -> token) (l : lexbuf) (t : token) : unit =
     match t with
     | RET ->
@@ -234,6 +234,5 @@ and lex_string buf = parse
       (let t = lexfun l in
       lex_with_ret lexfun l t);
     (pop_token ())
-
   
 }

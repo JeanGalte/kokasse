@@ -75,7 +75,24 @@ let rec type_expr (e : expr) (venv : venv)  : o_type =
   | If_then_else (cond, e1, e2) -> type_if_expr cond e1 e2 venv     
   | Unop (u, e) -> type_unop_expr u e venv
   | Binop (b, e1, e2) -> type_binop_expr b e1 e2 venv
+  | Fn f ->
+     type_fun f "-anonyme" venv
+  | Stmts l ->
+     type_block l venv
   | _ -> print_string "pas implémenté"; exit 2
+and type_block (b : stmt list) (venv : venv) : o_type =  
+     match b with
+     | [] -> Typename "unit"
+     | [E e] -> type_expr e venv
+     | h :: tl ->
+        (match h with
+         | Val (i, e) | Var (i, e) ->
+            let venv = Venv.add i (type_expr e venv) venv in
+            type_block tl venv
+         | E e -> ignore (type_expr e venv);
+                 type_block tl venv
+        )
+
 and type_if_expr (cond : expr) (e1 : expr) (e2 : expr) (venv : venv) : o_type =
   let tcond = type_expr cond venv in
      let t1 = type_expr e1 venv in
@@ -163,9 +180,7 @@ and type_binop_expr (b : binop) (e1 : expr) (e2 : expr) (venv : venv) : o_type=
                     (string_of_type t2)
                  )
               )
-        
-        
-let type_fun (f : funbody) (fun_name : string) (venv : venv)  : result_type =
+and type_r_fun (f : funbody) (fun_name : string) (venv : venv)  : result_type =
   ignore fun_name; 
   let args_map = Venv.of_list f.args in
   let env_w_args = Venv.merge (fun _ x _ -> x) args_map venv in
@@ -187,15 +202,17 @@ let type_fun (f : funbody) (fun_name : string) (venv : venv)  : result_type =
              ))); ()
   );
   rtype
-  
+and type_fun (f : funbody) (fun_name : string) (venv : venv) : o_type =
+  let ret_type = type_r_fun f fun_name venv in
+  let calcul_type = Calcul_t (List.map snd f.args, ret_type) in
+  calcul_type
   
 let rec type_prog (p : program) (venv : venv) : unit =
   match p with
   | [] -> ()
   | (fun_name, funbody) :: tl ->
-     let ret_type = type_fun funbody fun_name venv in
-     let calcul_type = Calcul_t (List.map snd funbody.args, ret_type) in 
-     type_prog tl (Venv.add fun_name calcul_type venv) 
+     let ftype = type_fun funbody fun_name venv in
+     type_prog tl (Venv.add fun_name ftype venv) 
      
 let typecheck (p : program) : unit =
   type_prog p empty_venv 
